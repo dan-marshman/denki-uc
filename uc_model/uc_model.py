@@ -161,15 +161,35 @@ class ucModel():
 
         self.vars= dict()
 
-        self.vars['commit_status'] = vr.commitment_status(self.sets['intervals'], self.sets['units'])
-        self.vars['energy_in_storage_MWh'] = vr.energy_in_storage_MWh(self.sets['intervals'],
-                                                                  self.sets['units_storage'])
-        self.vars['inertia_MWsec'] = vr.inertia(self.sets['intervals'], self.sets['units_commit'])
-        self.vars['power_generated_MW'] = vr.power_generated_MW(self.sets['intervals'], self.sets['units'])
-        self.vars['reserve_MW'] = vr.reserve_MW(self.sets['intervals'], self.sets['units'])
-        self.vars['shut_down_status'] = vr.shut_down_status(self.sets['intervals'], self.sets['units'])
-        self.vars['start_up_status'] = vr.start_up_status(self.sets['intervals'], self.sets['units'])
-        self.vars['unserved_demand_MW'] = vr.unserved_demand_MW(self.sets['intervals'])
-        self.vars['unserved_inertia_MWsec'] = vr.unserved_inertia_MWsec(self.sets['intervals'])
-        self.vars['unserved_reserve_MW'] = vr.unserved_reserve_MW(self.sets['intervals'])
-        self.vars['charge_after_losses_MW'] = vr.charge_after_losses_MW(self.sets['intervals'], self.sets['units_storage'])
+        self.vars['commit_status'] = \
+            vr.commitment_status(self.sets['intervals'], self.sets['units'])
+
+        self.vars['energy_in_storage_MWh'] = \
+            vr.energy_in_storage_MWh(self.sets['intervals'], self.sets['units_storage'])
+
+        self.vars['inertia_MWsec'] = \
+            vr.inertia(self.sets['intervals'], self.sets['units_commit'])
+
+        self.vars['power_generated_MW'] = \
+            vr.power_generated_MW(self.sets['intervals'], self.sets['units'])
+
+        self.vars['reserve_MW'] = \
+            vr.reserve_MW(self.sets['intervals'], self.sets['units'])
+
+        self.vars['shut_down_status'] = \
+            vr.shut_down_status(self.sets['intervals'], self.sets['units'])
+
+        self.vars['start_up_status'] = \
+            vr.start_up_status(self.sets['intervals'], self.sets['units'])
+
+        self.vars['unserved_demand_MW'] = \
+            vr.unserved_demand_MW(self.sets['intervals'])
+
+        self.vars['unserved_inertia_MWsec'] = \
+            vr.unserved_inertia_MWsec(self.sets['intervals'])
+
+        self.vars['unserved_reserve_MW'] = \
+            vr.unserved_reserve_MW(self.sets['intervals'])
+
+        self.vars['charge_after_losses_MW'] = \
+            vr.charge_after_losses_MW(self.sets['intervals'], self.sets['units_storage'])
