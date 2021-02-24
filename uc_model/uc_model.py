@@ -68,8 +68,9 @@ class ucModel():
 
         scs.check_power_lt_capacity(self)
         scs.total_gen_equals_demand(self)
-        scs.check_energy_charged_lt_charge_capacity
+        scs.check_energy_charged_lt_charge_capacity(self)
         scs.check_storage_continiuity(self)
+        scs.check_stored_energy_lt_storage_capacity(self)
 
     def solve_model(self):
         def exit_if_infeasible(status):
