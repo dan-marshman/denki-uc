@@ -22,6 +22,7 @@ class initTests(unittest.TestCase):
         test_model = uc.ucModel(name, path)
         self.assertEqual(test_model.inputs_path, path)
 
+
 class traceTests(unittest.TestCase):
     def test_traces_are_loaded(self):
         test_model = uc.ucModel('test1', path_to_inputs)

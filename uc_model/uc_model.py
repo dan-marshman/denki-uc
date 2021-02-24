@@ -9,7 +9,6 @@ sys.path.append(module_path)
 
 class ucModel():
     def __init__(self, name, inputs_path):
-        import sys
         print()
         print("-------------------------------------------------------------------------")
         print()
@@ -41,59 +40,12 @@ class ucModel():
         print()
         print("---------------------------- Model generated ----------------------------")
 
-    def build_model(self):
-        import constraints as cnsts
-        import obj_fn as obj
+    def load_parameters(self):
+        import load_parameters as lp
 
-        self.mod = pp.LpProblem(self.name, sense=pp.LpMinimize)
-        self.mod += obj.obj_fn(self)
-
-        self = cnsts.create_constraints_df(self)
-        self = cnsts.add_all_constraints_to_dataframe(self)
-    
-    def store_results(self):
-        import store_results_to_df as sr
-        
-        self.results = dict()
-        self.results['commit_status'] = sr.commit_status_to_df(self)
-        self.results['energy_price_$pMWh'] = sr.energy_price_to_df(self)
-        self.results['charge_after_losses_MW'] = sr.charge_after_losses_to_df(self)
-        self.results['charge_before_losses_MW'] = sr.charge_before_losses_to_df(self)
-        self.results['power_generated_MW'] = sr.power_generated_to_df(self)
-        self.results['unserved_demand_MW'] = sr.unserved_demand_to_df(self)
-        self.results['energy_in_storage_MWh'] = sr.energy_in_storage_to_df(self)
-
-    def sanity_check_solution(self):
-        import sanity_check_solution as scs
-
-        scs.check_power_lt_capacity(self)
-        scs.total_gen_equals_demand(self)
-        scs.check_energy_charged_lt_charge_capacity(self)
-        scs.check_storage_continiuity(self)
-        scs.check_stored_energy_lt_storage_capacity(self)
-
-    def solve_model(self):
-        def exit_if_infeasible(status):
-            if status == 'Infeasible':
-                print()
-                print(self.name, 'was infeasible. Exiting.')
-                print()
-                exit()
-
-        print('Begin solving the model')
-        self.mod.solve(pp.PULP_CBC_CMD(timeLimit=120,
-                                  threads=0,
-                                  msg=0,
-                                  gapRel=0))
-        print('Solve complete')
-
-        self.optimality_status = pp.LpStatus[self.mod.status]
-        print('Model status: %s' % self.optimality_status)
-        exit_if_infeasible(self.optimality_status)
-
-        self.opt_obj_fn_value = self.mod.objective.value()
-        print('Objective function = %f' % self.opt_obj_fn_value)
-        print()
+        self = lp.load_settings(self)
+        self = lp.load_traces(self)
+        self = lp.load_unit_data(self)
 
     def create_sets(self):
         def assess_category(category):
@@ -114,47 +66,6 @@ class ucModel():
         self.sets['units_commit'] = assess_category('Commit')
         self.sets['units_storage'] = assess_category('Storage')
         self.sets['units_variable'] = assess_category('Variable')
-
-    def load_parameters(self):
-        self.load_settings()
-        self.load_traces()
-        self.load_unit_data()
-
-    def load_traces(self):
-        trace_files = ['demand',
-                       'wind',
-                       'solarPV']
-
-        self.traces = dict()
-
-        for file in trace_files:
-            file_path = os.path.join(self.inputs_path, file + '.csv')
-            if os.path.exists(file_path):
-                df = pd.read_csv(file_path, index_col=0)
-                self.traces[file] = df
-            else:
-                print("Looking for trace file which does not exist", file_path)
-                print()
-
-    def load_settings(self):
-        import csv
-
-        self.settings = dict()
-        settings_path = os.path.join(self.inputs_path, 'settings.csv')
-
-        f = open(settings_path)
-        settings_data = csv.DictReader(f)
-        for row in settings_data:
-            self.settings.setdefault(row['Parameter'], row['Value'])
-        f.close
-
-    def load_unit_data(self):
-        unit_data_path = os.path.join(self.inputs_path, 'unit_data.csv')
-        if os.path.exists(unit_data_path):
-            self.unit_data = pd.read_csv(unit_data_path, index_col=0)
-        else:
-            print("Looking for unit_data file which does not exist", file_path)
-            print()
 
     def create_variables(self):
         import variables as vr
@@ -193,3 +104,57 @@ class ucModel():
 
         self.vars['charge_after_losses_MW'] = \
             vr.charge_after_losses_MW(self.sets['intervals'], self.sets['units_storage'])
+
+    def build_model(self):
+        import constraints as cnsts
+        import obj_fn as obj
+
+        self.mod = pp.LpProblem(self.name, sense=pp.LpMinimize)
+        self.mod += obj.obj_fn(self)
+
+        self = cnsts.create_constraints_df(self)
+        self = cnsts.add_all_constraints_to_dataframe(self)
+
+    def solve_model(self):
+        def exit_if_infeasible(status):
+            if status == 'Infeasible':
+                print()
+                print(self.name, 'was infeasible. Exiting.')
+                print()
+                exit()
+
+        print('Begin solving the model')
+        self.mod.solve(pp.PULP_CBC_CMD(timeLimit=120,
+                                  threads=0,
+                                  msg=0,
+                                  gapRel=0))
+        print('Solve complete')
+
+        self.optimality_status = pp.LpStatus[self.mod.status]
+        print('Model status: %s' % self.optimality_status)
+        exit_if_infeasible(self.optimality_status)
+
+        self.opt_obj_fn_value = self.mod.objective.value()
+        print('Objective function = %f' % self.opt_obj_fn_value)
+        print()
+
+    def store_results(self):
+        import store_results_to_df as sr
+        
+        self.results = dict()
+        self.results['commit_status'] = sr.commit_status_to_df(self)
+        self.results['energy_price_$pMWh'] = sr.energy_price_to_df(self)
+        self.results['charge_after_losses_MW'] = sr.charge_after_losses_to_df(self)
+        self.results['charge_before_losses_MW'] = sr.charge_before_losses_to_df(self)
+        self.results['power_generated_MW'] = sr.power_generated_to_df(self)
+        self.results['unserved_demand_MW'] = sr.unserved_demand_to_df(self)
+        self.results['energy_in_storage_MWh'] = sr.energy_in_storage_to_df(self)
+
+    def sanity_check_solution(self):
+        import sanity_check_solution as scs
+
+        scs.check_power_lt_capacity(self)
+        scs.total_gen_equals_demand(self)
+        scs.check_energy_charged_lt_charge_capacity(self)
+        scs.check_storage_continiuity(self)
+        scs.check_stored_energy_lt_storage_capacity(self)
