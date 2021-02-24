@@ -86,7 +86,7 @@ def energy_storage_continuity_first_interval(self, mod):
     for u in self.sets['units_storage']:
         i = min(self.sets['intervals'])
         initial_energy_in_storage_MWh \
-            = (self.unit_data['InitialStorage_pct'][u]
+            = (self.initial_state['StorageLevel_pct'][u]
                * self.unit_data['StorageCap_h'][u]
                * self.unit_data['Capacity_MW'][u])
         label = 'storage_continuity_%s_int_%s' % (u, i)
@@ -147,6 +147,9 @@ def add_all_constraints_to_dataframe(self):
     
     if self.constraints_df['Include']['energy_storage_continuity'] == 1:
         self.mod = energy_storage_continuity(self, self.mod)
+    
+    if self.constraints_df['Include']['energy_storage_continuity_first_interval'] == 1:
+        self.mod = energy_storage_continuity_first_interval(self, self.mod)
     
     if self.constraints_df['Include']['max_stored_energy'] == 1:
         self.mod = max_stored_energy(self, self.mod)

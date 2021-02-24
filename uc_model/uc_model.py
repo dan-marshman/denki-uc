@@ -1,6 +1,6 @@
-import pulp as pp
 import os
 import pandas as pd
+import pulp as pp
 import sys
 
 module_path = os.path.dirname(__file__)
@@ -43,6 +43,7 @@ class ucModel():
     def load_parameters(self):
         import load_parameters as lp
 
+        self = lp.load_initial_state(self)
         self = lp.load_settings(self)
         self = lp.load_traces(self)
         self = lp.load_unit_data(self)
