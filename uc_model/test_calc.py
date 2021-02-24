@@ -66,4 +66,5 @@ class setsTests(unittest.TestCase):
         expected_set = ['Battery1']
         self.assertEqual(val, expected_set)
 
+
 unittest.main()

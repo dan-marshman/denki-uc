@@ -134,25 +134,13 @@ def is_there_any_unserved(unserved):
         print("*** There was unserved system strength:", unserved_sysstrength)
 
 
-def com_eq_selfcom_plus_activated_contracts(self_com, contracts, intervention, commit):
-    combined_commit = self_com.add(contracts)
-    combined_commit = combined_commit.add(intervention)
-    exactly_the_same = combined_commit.equals(commit)
-    if exactly_the_same:
-        return 0
-    else:
-        print("Self-comitted plus activated contracts schedule"
-              "does not equal the full commit schedule")
-        return 1
-
-
 def check_storage_continiuity(self):
     errors_count = 0
     for u in list(self.sets['units_storage']):
         for i in self.sets['intervals']:
             if i == min(self.sets['intervals']):
                 initial_energy_in_storage_MWh \
-                    = (self.initial_state['StorageLevel_pct'][u]
+                    = (self.initial_state['StorageLevel_frac'][u]
                        * self.unit_data['StorageCap_h'][u]
                        * self.unit_data['Capacity_MW'][u])
                 net_flow = \
@@ -170,10 +158,10 @@ def check_storage_continiuity(self):
                      + self.results['charge_after_losses_MW'][u][i] / 2
                      - self.results['power_generated_MW'][u][i] / 2
                     )
-                if net_flow != 0:
-                    print('Sanity Check: Unit', u, 'Interval', i,
-                          'net storage flow is not zero')
-                    errors_count += 1
+            if net_flow != 0:
+                print('Sanity Check: Unit', u, 'Interval', i,
+                      'net storage flow is not zero')
+                errors_count += 1
     return errors_count
 
 

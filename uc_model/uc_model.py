@@ -22,6 +22,7 @@ class ucModel():
         if not os.path.exists(self.inputs_path):
             print("Inputs path does not exist. Exiting")
             return
+        self.module_path = module_path
 
         self.INTERVALS_PER_HOUR = 2
         self.UNS_LOAD_PNTY = 10000
@@ -30,7 +31,6 @@ class ucModel():
         print("Remember to define INTERVALS PER HOUR")
 
         self.load_parameters()
-        self.create_sets()
         self.create_variables()
         self.build_model()
         self.solve_model()
@@ -43,30 +43,11 @@ class ucModel():
     def load_parameters(self):
         import load_parameters as lp
 
-        self = lp.load_initial_state(self)
         self = lp.load_settings(self)
         self = lp.load_traces(self)
         self = lp.load_unit_data(self)
-
-    def create_sets(self):
-        def assess_category(category):
-            path_to_tech_categories_file = os.path.join(module_path, 'technology_categories.csv') 
-            tech_categories_df = pd.read_csv(path_to_tech_categories_file, index_col=0)
-            subset = []
-            for u in self.sets['units']:
-                unit_tech = self.unit_data['Technology'][u]
-                if tech_categories_df[category][unit_tech] == 1:
-                    subset.append(u)
-            return subset
-
-        self.sets = dict()
-
-        self.sets['intervals'] = self.traces['demand'].index.to_list()
-        self.sets['units'] = self.unit_data.index.to_list()
-
-        self.sets['units_commit'] = assess_category('Commit')
-        self.sets['units_storage'] = assess_category('Storage')
-        self.sets['units_variable'] = assess_category('Variable')
+        self = lp.create_sets(self)
+        self = lp.load_initial_state(self)
 
     def create_variables(self):
         import variables as vr
