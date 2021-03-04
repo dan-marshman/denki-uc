@@ -3,11 +3,7 @@ import pandas as pd
 import pulp as pp
 import sys
 
-module_path = os.path.dirname(__file__)
-sys.path.append(module_path)
-
-
-class ucModel():
+class Model():
     def __init__(self, name, inputs_path):
         print()
         print("-------------------------------------------------------------------------")
@@ -122,7 +118,7 @@ class ucModel():
 
     def store_results(self):
         import store_results_to_df as sr
-        
+
         self.results = dict()
         self.results['commit_status'] = sr.commit_status_to_df(self)
         self.results['energy_price_$pMWh'] = sr.energy_price_to_df(self)
