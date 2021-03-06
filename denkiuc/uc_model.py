@@ -5,6 +5,9 @@ import sys
 
 class ucModel():
     def __init__(self, name, path_to_inputs):
+        import denkiuc.load_data as ld
+        import denkiuc.variables as va
+
         print()
         print("-------------------------------------------------------------------------")
         print()
@@ -19,8 +22,15 @@ class ucModel():
             print("Inputs path does not exist. Exiting")
             return
 
-        self.load_parameters()
-        self.create_variables()
+        self.data = ld.Data(path_to_inputs)
+        self.settings = ld.load_settings(path_to_inputs)
+        self.sets = ld.load_master_sets(self.data)
+        self.sets = ld.load_unit_subsets(self.data, self.sets)
+        self.data.validate_initial_state_data(self.sets)
+        
+        self.vars = va.make_all_variables(self.sets)
+        print(self.vars)
+
         self.build_model()
         self.solve_model()
         self.store_results()
@@ -29,62 +39,15 @@ class ucModel():
         print()
         print("---------------------------- Model generated ----------------------------")
 
-    def load_parameters(self):
-        import denkiuc.load_parameters as lp
-
-        self = lp.load_settings(self)
-        self = lp.load_traces(self)
-        self = lp.load_unit_data(self)
-        self = lp.create_sets(self)
-        self = lp.load_initial_state(self)
-
-    def create_variables(self):
-        import denkiuc.variables as vr
-
-        self.vars= dict()
-
-        self.vars['commit_status'] = \
-            vr.commitment_status(self.sets['intervals'], self.sets['units'])
-
-        self.vars['energy_in_storage_MWh'] = \
-            vr.energy_in_storage_MWh(self.sets['intervals'], self.sets['units_storage'])
-
-        self.vars['inertia_MWsec'] = \
-            vr.inertia(self.sets['intervals'], self.sets['units_commit'])
-
-        self.vars['power_generated_MW'] = \
-            vr.power_generated_MW(self.sets['intervals'], self.sets['units'])
-
-        self.vars['reserve_MW'] = \
-            vr.reserve_MW(self.sets['intervals'], self.sets['units'])
-
-        self.vars['shut_down_status'] = \
-            vr.shut_down_status(self.sets['intervals'], self.sets['units'])
-
-        self.vars['start_up_status'] = \
-            vr.start_up_status(self.sets['intervals'], self.sets['units'])
-
-        self.vars['unserved_demand_MW'] = \
-            vr.unserved_demand_MW(self.sets['intervals'])
-
-        self.vars['unserved_inertia_MWsec'] = \
-            vr.unserved_inertia_MWsec(self.sets['intervals'])
-
-        self.vars['unserved_reserve_MW'] = \
-            vr.unserved_reserve_MW(self.sets['intervals'])
-
-        self.vars['charge_after_losses_MW'] = \
-            vr.charge_after_losses_MW(self.sets['intervals'], self.sets['units_storage'])
-
     def build_model(self):
         import denkiuc.constraints as cnsts
         import denkiuc.obj_fn as obj
 
         self.mod = pp.LpProblem(self.name, sense=pp.LpMinimize)
-        self.mod += obj.obj_fn(self)
+        self.mod += obj.obj_fn(self.sets, self.data, self.variables.vars, self.settings)
 
-        self = cnsts.create_constraints_df(self)
-        self = cnsts.add_all_constraints_to_dataframe(self)
+        self.constraints_df = cnsts.create_constraints_df(self.path_to_inputs)
+        self.mod = cnsts.add_all_constraints_to_dataframe(self.sets, self.data, self.variables.vars, self.settings, self.mod, self.constraints_df)
 
     def solve_model(self):
         def exit_if_infeasible(status):
@@ -113,13 +76,41 @@ class ucModel():
         import denkiuc.store_results_to_df as sr
 
         self.results = dict()
-        self.results['commit_status'] = sr.commit_status_to_df(self)
-        self.results['energy_price_$pMWh'] = sr.energy_price_to_df(self)
-        self.results['charge_after_losses_MW'] = sr.charge_after_losses_to_df(self)
-        self.results['charge_before_losses_MW'] = sr.charge_before_losses_to_df(self)
-        self.results['power_generated_MW'] = sr.power_generated_to_df(self)
-        self.results['unserved_demand_MW'] = sr.unserved_demand_to_df(self)
-        self.results['energy_in_storage_MWh'] = sr.energy_in_storage_to_df(self)
+        def get_num_of_var_indexes(vars):
+            num_indexes = dict()
+            for var in vars:
+                keys = list(vars[var].keys())
+                if type(keys[0]) == tuple:
+                    num_indexes[var] = len(keys[0])
+                elif type(keys[0]) == int:
+                    num_indexes[var] = 1
+            return num_indexes
+
+        def store_variable_result(vars):
+            num_indexes = get_num_of_var_indexes(self.variables.vars)
+            results = dict()
+
+            for key, val in vars.items():
+                if num_indexes[key] == 1:
+                    indices = list(vars[key].keys())
+                    values = [vars[key][i].value() for i in indices]
+                    results[key] = pd.Series(data=values, index = indices)
+                if num_indexes[key] == 2:
+                    print(key)
+                    indices = list(vars[key].keys())
+                    print(indices)
+                    exit()
+
+        self.results = store_variable_result(self.variables.vars)
+
+        exit()
+        # self.results['commit_status'] = sr.commit_status_to_df(self)
+        # self.results['energy_price_$pMWh'] = sr.energy_price_to_df(self)
+        # self.results['charge_after_losses_MW'] = sr.charge_after_losses_to_df(self)
+        # self.results['charge_before_losses_MW'] = sr.charge_before_losses_to_df(self)
+        # self.results['power_generated_MW'] = sr.power_generated_to_df(self)
+        # self.results['unserved_demand_MW'] = sr.unserved_demand_to_df(self)
+        # self.results['energy_in_storage_MWh'] = sr.energy_in_storage_to_df(self)
 
     def sanity_check_solution(self):
         import denkiuc.sanity_check_solution as scs

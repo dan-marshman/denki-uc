@@ -4,7 +4,7 @@ BrownCoal,1,0,0,0,1
 BlackCoal,1,0,0,0,1
 Gas,1,0,0,0,1
 OCGT,1,0,0,1,0
-CCGT,,0,0,0,1
+CCGT,1,0,0,0,1
 Battery,0,1,0,0,0
 PHES,1,1,0,1,0
 Wind,0,0,1,0,0
