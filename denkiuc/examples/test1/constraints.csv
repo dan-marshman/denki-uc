@@ -2,8 +2,10 @@ Name,Include
 supply_eq_demand,1
 intermittent_resource_availability,1
 power_lt_committed_capacity,1
+power_gt_min_stable_gen,1
 power_lt_capacity,1
 energy_storage_continuity,1
 energy_storage_continuity_first_interval,1
 max_stored_energy,1
 max_charge,1
+commitment_continuity,1
