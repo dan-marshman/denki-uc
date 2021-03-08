@@ -6,7 +6,6 @@ denkiuc/constraints.py
 denkiuc/load_data.py
 denkiuc/obj_fn.py
 denkiuc/sanity_check_solution.py
-denkiuc/store_results_to_df.py
 denkiuc/uc_model.py
 denkiuc/variables.py
 denkiuc.egg-info/PKG-INFO
@@ -14,4 +13,15 @@ denkiuc.egg-info/SOURCES.txt
 denkiuc.egg-info/dependency_links.txt
 denkiuc.egg-info/requires.txt
 denkiuc.egg-info/top_level.txt
+examples/test1/constraints.csv
+examples/test1/demand.csv
+examples/test1/inertia_requirement.csv
+examples/test1/initial_state.csv
+examples/test1/network_data.csv
+examples/test1/reserve_requirement.csv
+examples/test1/settings.csv
+examples/test1/solarPV.csv
+examples/test1/unit_data.csv
+examples/test1/wind.csv
+test/__init__.py
 test/test_calc.py

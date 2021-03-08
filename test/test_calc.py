@@ -3,10 +3,6 @@ from denkiuc import uc_model as uc
 import unittest
 
 
-path_to_denki = os.path.join(os.sep, 'Users', 'danie', 'Documents', 'denki-uc')
-path_to_inputs = os.path.abspath(os.path.join(path_to_denki, 'input_dbs', 'test1'))
-
-
 class initTests(unittest.TestCase):
     def test_name_is_set(self):
         name = 'hello'
@@ -67,4 +63,5 @@ class setsTests(unittest.TestCase):
         self.assertEqual(val, expected_set)
 
 
-unittest.main()
+if __name__ == '__main__':
+    unittest.main()

@@ -12,7 +12,7 @@ Test the package using
 ```
 $ python main.py
 ```
-This will run a test set of input data, contained in 'denki-uc/examples/test1'. Results files are written as .csv files in denki-outputs by default.
+This will run a test set of input data, contained in '/examples/test1'. Results files are written as .csv files in the directory 'denki-outputs' by default.
 
 # Usage
 TBD
