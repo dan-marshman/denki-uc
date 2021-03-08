@@ -1,5 +1,10 @@
 # Denki-UC
-A stochastic unit commitment model in python - still in development
+A stochastic unit commitment model in python.  This model is currently in development. This may
+be used in accordance with the GPL3.0 license, but please see the citation section if publishing
+results from use of the model.
+For the UC model formulation and examples of usage, see the following:
+1. Marshman, D., Brear, M., Jeppesen, M. and Ring, B., 2020. Performance of wholesale electricity markets with high wind penetration. Energy Economics, 89, p.104803.
+2. Marshman, D., 2018. Performance of electricity markets & power plant investments in the transition to a low-carbon power system (Doctoral dissertation).
 
 # Installation
 Clone and install using
@@ -44,3 +49,6 @@ The Unit column is used to create the set of units.  Remaining fields specify a 
 This specifies the initial state of the system, immediately prior to the first interval.  For thermal units, it specifies their initial commitment status, and current operating point (e.g. megawatts of power being generated). Storage units have their storage level specified (as a fraction of total storage capacity).
 # Detailed documentation
 Coming soon
+# Citation
+If publishing work based on results generated from this model, please cite the following paper:
+Marshman, D., Brear, M., Jeppesen, M. and Ring, B., 2020. Performance of wholesale electricity markets with high wind penetration. Energy Economics, 89, p.104803.
