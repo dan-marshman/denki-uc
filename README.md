@@ -44,14 +44,16 @@ This will run a test set of input data, viewed in '/examples/test1'. Results fil
 
 ## Getting started
 This module runs a unit commitment simulation by calling an instance of a ucModel from uc_model.py, which takes two arguments
-1. The name of your simulation - e.g. "MyModel";
-2. The path to the data directory to be used for the simulation, e.g. 'path\to\inputs'
+1. The name of your simulation (e.g. "MyModel")
+2. The path to the input data directory (e.g. 'path\to\inputs')
+
+In a python script, execute:
 ```
 import denkiuc.uc_model as uc
 
-yourModel = uc.ucModel(name='MyModel', path_to_inputs='path\to\inputs')
+yourModel = uc.ucModel(name='MyModel', path_to_inputs='<denki_path>\examples\test1')
 ```
-Note that 'path\to\inputs' should contain all input data (e.g. electricity demand, generating unit data, etc), and a 'settings.csv', which controls how the model behaves.
+replacing *<denki_path>* with the path where you cloned the repo.  In general, 'path_to_inputs' argument should contain all input data (e.g. electricity demand, generating unit data, etc), and a 'settings.csv', which controls how the model behaves.
 
 At this point, you will have built a model - but not yet solved it.  To do so, use the 'solve()' method, i.e.
 ```
