@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import pulp as pp
 import sys
+import logging
 
 
 class ucModel():
@@ -24,21 +25,29 @@ class ucModel():
             print("Inputs path does not exist. Exiting")
             return
 
-        self.data = ld.Data(path_to_inputs)
         self.settings = ld.load_settings(path_to_inputs)
+        self.path_to_outputs = os.path.join(self.settings['OUTPUTS_PATH'], self.name)
+        logging.basicConfig(filename=os.path.join(self.path_to_outputs, 'warn.log'),
+                            level=logging.WARNING)
+
+
+        self.data = ld.Data(path_to_inputs)
         self.sets = ld.load_master_sets(self.data)
         self.sets = ld.load_unit_subsets(self.data, self.sets)
         self.data.validate_initial_state_data(self.sets)
         self.vars = va.make_all_variables(self.sets)
 
-        self.path_to_outputs = os.path.join(self.settings['OUTPUTS_PATH'], self.name)
-
         self.build_model()
+
+        print("\n---- Model built ----\n")
+
+
+    def solve(self):
         self.solve_model()
         self.store_results()
         self.sanity_check_solution()
 
-        print("---------------------------- Model solved ----------------------------")
+        print("\n---- Model solved ----\n")
 
     def build_model(self):
         import denkiuc.constraints as cnsts
@@ -70,7 +79,6 @@ class ucModel():
 
         self.opt_obj_fn_value = self.mod.objective.value()
         print('Objective function = %f' % self.opt_obj_fn_value)
-        print()
 
     def store_results(self):
         import shutil
@@ -97,7 +105,8 @@ class ucModel():
 
 
 path_to_denki = os.path.dirname(os.path.abspath(__file__))
-path_to_denki_examples = os.path.join(os.path.dirname(path_to_denki), 'examples')
+path_to_examples = os.path.join(os.path.dirname(path_to_denki), 'examples')
+path_to_tests = os.path.join(os.path.dirname(path_to_denki), 'test')
 
 
 if __name__ == '__main__':

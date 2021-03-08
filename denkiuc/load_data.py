@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-
+import logging
 
 def load_settings(path_to_inputs):
     import csv
@@ -8,11 +8,10 @@ def load_settings(path_to_inputs):
     settings = dict()
     settings_path = os.path.join(path_to_inputs, 'settings.csv')
 
-    f = open(settings_path)
-    settings_data = csv.DictReader(f)
-    for row in settings_data:
-        settings.setdefault(row['Parameter'], row['Value'])
-    f.close
+    with open(settings_path) as f:
+        settings_data = csv.DictReader(f)
+        for row in settings_data:
+            settings.setdefault(row['Parameter'], row['Value'])
     
     settings['INTERVALS_PER_HOUR'] = int(settings['INTERVALS_PER_HOUR'])
     settings['UNS_LOAD_PNTY'] = int(settings['UNS_LOAD_PNTY'])
@@ -21,6 +20,7 @@ def load_settings(path_to_inputs):
 
     if 'OUTPUTS_PATH' not in settings.keys():
         settings['OUTPUTS_PATH'] = os.path.join(os.getcwd(), 'denki-outputs')
+
     return settings
 
 class dkSet():
@@ -37,7 +37,8 @@ class dkSet():
     def validate_set(self, master_set):
         for ind in self.indices:
             if ind not in master_set.indices:
-                raise ValueError("%s indice %s is not a member of master set %s" % (self.name, str(ind), master_set.name))
+                print("member of set called %s (%s) is not a member of the master set %s" % (self.name, str(ind), master_set.name))
+                raise ValueError('Subset validation error')
 
     def append_subset(self, subset):
         self.subsets.append(subset)
@@ -126,6 +127,16 @@ class Data:
 
     def validate_initial_state_data(self, sets):
         for u in sets['units_commit'].indices:
+            commit_val = self.initial_state['Commit'][u]
+            if commit_val not in [0, 1]:
+                new_commit_val = round(commit_val, 0)
+                if new_commit_val > 1:
+                    new_commit_val = 1
+                if new_commit_val < 0:
+                    new_commit_val = 0
+                logging.error("initial state had commit value of %f for unit %s. Changed to %d" % (commit_val, u, new_commit_val))
+                self.initial_state.loc[u, 'Commit'] = new_commit_val
+
             initial_power_MW = self.initial_state['PowerGeneration_MW'][u] 
             
             minimum_initial_power_MW = \
@@ -135,20 +146,12 @@ class Data:
                 self.initial_state['Commit'][u] * self.units['Capacity_MW'][u]
 
             if  initial_power_MW < minimum_initial_power_MW:
-                print()
                 print('Unit %s has initial power below its minimum generation based on commitment' % u)
-                print()
-                exit()
 
             if  initial_power_MW > maximum_initial_power_MW:
-                print()
                 print('Unit %s has initial power above its maximum generation based on commitment' % u)
-                print()
-                exit()
         
         for u in sets['units_storage'].indices:
             if self.initial_state['StorageLevel_frac'][u] > 1:
-                print()
                 print('Unit %s has initial storage fraction greater than 1' % u)
-                print()
                 exit()
