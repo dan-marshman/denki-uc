@@ -1,161 +1,237 @@
 import pulp as pp
 
-def supply_eq_demand(self, mod):
-    for i in self.sets['intervals']:
+
+def supply_eq_demand(sets, data, vars, mod):
+    
+    for i in sets['intervals'].indices:
+
         label = 'meet_demand_i_%d' % i
+        
         condition = \
             (
-             pp.lpSum([self.vars['power_generated_MW'][(i, u)]
-                      for u in self.sets['units']])
-             + self.vars['unserved_demand_MW'][i]
+             pp.lpSum([vars['power_generated'].var[(i, u)]
+                      for u in sets['units'].indices])
+             + vars['unserved_power'].var[i]
              ==
-             self.traces['demand']['VIC'][i]
-             + pp.lpSum([self.vars['charge_after_losses_MW'][(i, u)]
-                         * (1 / self.unit_data['RTEfficiency'][u])
-                        for u in self.sets['units_storage']])
+             data.traces['demand']['VIC'][i]
+             + pp.lpSum([vars['charge_after_losses'].var[(i, u)]
+                         * (1 / data.units['RTEfficiency'][u])
+                        for u in sets['units_storage'].indices])
              )
+        
         mod += condition, label
     return mod
 
 
-def intermittent_resource_availability(self, mod):
+def intermittent_resource_availability(sets, data, vars, mod):
 
     def get_resource_trace(region, technology):
         if technology == 'Wind':
-            trace = self.traces['wind']['VIC'].to_dict()
+            trace = data.traces['wind']['VIC'].to_dict()
         elif technology == 'SolarPV':
-            trace = self.traces['solarPV']['VIC'].to_dict()
+            trace = data.traces['solarPV']['VIC'].to_dict()
         else:
             print('Technology not known')
             exit()
         return trace
     
-    for u in self.sets['units_variable']:
-        region = self.unit_data['Region'][u]
-        technology = self.unit_data['Technology'][u]
+    for u in sets['units_variable'].indices:
+        region = data.units['Region'][u]
+        technology = data.units['Technology'][u]
         trace = get_resource_trace(region, technology)
-        for i in self.sets['intervals']:
+
+        for i in sets['intervals'].indices:
             label = 'variable_resource_availability_u_%s_i_%s' % (u, i)
-            condition = self.vars['power_generated_MW'][(i, u)] \
-                <= trace[i] * self.unit_data['Capacity_MW'][u]
-            mod += condition, label
-
-    return mod
-
-
-def power_lt_committed_capacity(self, mod):
-    for i in self.sets['intervals']:
-        for u in self.sets['units']:
-            label = 'power_lt_cap_%s_int_%s' % (u, i)
+            
             condition = \
-                (self.vars['power_generated_MW'][(i, u)] + self.vars['reserve_MW'][(i, u)]
-                 <=
-                 self.vars['commit_status'][(i, u)] * self.unit_data['Capacity_MW'][u])
+                (
+                 vars['power_generated'].var[(i, u)] \
+                     <= trace[i] * data.units['Capacity_MW'][u]
+                )
+
             mod += condition, label
+
     return mod
 
 
-def power_lt_capacity(self, mod):
-    for i in self.sets['intervals']:
-        for u in self.sets['units']:
-            label = 'power_lt_cap_%s_int_%s' % (u, i)
-            condition = \
-                (self.vars['power_generated_MW'][(i, u)] + self.vars['reserve_MW'][(i, u)]
-                 <=
-                 self.unit_data['Capacity_MW'][u])
-            mod += condition, label
-    return mod
+def commitment_continuity(sets, data, vars, mod):
+    for i in sets['intervals'].indices:
 
+        for u in sets['units_commit'].indices:
+            if i == min(sets['intervals'].indices):
+                label = 'commitment_continuity_%s_int_%s' % (u, i)
 
-def energy_storage_continuity(self, mod):
-    for i in self.sets['intervals']:
-        if i > min(self.sets['intervals']):
-            for u in self.sets['units_storage']:
-                label = 'storage_continuity_%s_int_%s' % (u, i)
                 condition = \
-                    (self.vars['energy_in_storage_MWh'][(i, u)]
+                    (
+                     vars['commit_status'].var[(i, u)] 
+                     == 
+                     data.initial_state['Commit'][u]
+                     + vars['start_up_status'].var[(i, u)]
+                     - vars['shut_down_status'].var[(i, u)]
+                     )
+
+            if i > min(sets['intervals'].indices):
+                label = 'commitment_continuity_%s_int_%s' % (u, i)
+
+                condition = \
+                    (
+                     vars['commit_status'].var[(i, u)] 
+                     == 
+                     vars['commit_status'].var[(i-1, u)]
+                     + vars['start_up_status'].var[(i, u)]
+                     - vars['shut_down_status'].var[(i, u)]
+                     )
+
+            mod += condition, label
+
+    return mod
+
+
+def power_lt_committed_capacity(sets, data, vars, mod):
+    for i in sets['intervals'].indices:
+        for u in sets['units_commit'].indices:
+            label = 'power_lt_commited_cap_%s_int_%s' % (u, i)
+
+            condition = \
+                (vars['power_generated'].var[(i, u)] + vars['reserve_enablement'].var[(i, u)]
+                 <=
+                 vars['commit_status'].var[(i, u)] * data.units['Capacity_MW'][u])
+
+            mod += condition, label
+    return mod
+
+
+def power_gt_min_stable_gen(sets, data, vars, mod):
+    for i in sets['intervals'].indices:
+        for u in sets['units_commit'].indices:
+            label = 'power_gt_min_stable_gen_%s_int_%s' % (u, i)
+
+            condition = \
+                (vars['power_generated'].var[(i, u)]
+                 >=
+                 vars['commit_status'].var[(i, u)] * data.units['Capacity_MW'][u] * data.units['MinGen'][u])
+
+            mod += condition, label
+    return mod
+
+
+def power_lt_capacity(sets, data, vars, mod):
+    for i in sets['intervals'].indices:
+        for u in sets['units'].indices:
+            label = 'power_lt_cap_%s_int_%s' % (u, i)
+            
+            condition = \
+                (vars['power_generated'].var[(i, u)] + vars['reserve_enablement'].var[(i, u)]
+                 <=
+                 data.units['Capacity_MW'][u]
+                )
+            
+            mod += condition, label
+    return mod
+
+
+def energy_storage_continuity(sets, data, vars, mod, settings):
+    for i in sets['intervals'].indices:
+        if i > min(sets['intervals'].indices):
+            for u in sets['units_storage'].indices:
+                label = 'storage_continuity_%s_int_%s' % (u, i)
+
+                condition = \
+                    (vars['energy_in_reservoir'].var[(i, u)]
                      ==
-                     self.vars['energy_in_storage_MWh'][(i-1, u)]
-                     + self.vars['charge_after_losses_MW'][(i, u)] * (1 / self.INTERVALS_PER_HOUR)
-                     - self.vars['power_generated_MW'][(i, u)] * (1 / self.INTERVALS_PER_HOUR))
+                     vars['energy_in_reservoir'].var[(i-1, u)]
+                     + vars['charge_after_losses'].var[(i, u)] * (1 / settings['INTERVALS_PER_HOUR'])
+                     - vars['power_generated'].var[(i, u)] * (1 / settings['INTERVALS_PER_HOUR'])
+                    )
                 mod += condition, label
     return mod
 
 
-def energy_storage_continuity_first_interval(self, mod):
-    for u in self.sets['units_storage']:
-        i = min(self.sets['intervals'])
-        initial_energy_in_storage_MWh \
-            = (self.initial_state['StorageLevel_frac'][u]
-               * self.unit_data['StorageCap_h'][u]
-               * self.unit_data['Capacity_MW'][u])
+def energy_storage_continuity_first_interval(sets, data, vars, mod, settings):
+    for u in sets['units_storage'].indices:
+        i = min(sets['intervals'].indices)
+        initial_energy_in_reservoir \
+            = (data.initial_state['StorageLevel_frac'][u]
+               * data.units['StorageCap_h'][u]
+               * data.units['Capacity_MW'][u])
         label = 'storage_continuity_%s_int_%s' % (u, i)
         condition = \
-            (self.vars['energy_in_storage_MWh'][(i, u)]
+            (vars['energy_in_reservoir'].var[(i, u)]
              ==
-             initial_energy_in_storage_MWh
-             + self.vars['charge_after_losses_MW'][(i, u)] * (1 / self.INTERVALS_PER_HOUR)
-             - self.vars['power_generated_MW'][(i, u)] * (1 / self.INTERVALS_PER_HOUR))
+             initial_energy_in_reservoir
+             + vars['charge_after_losses'].var[(i, u)] * (1 / settings['INTERVALS_PER_HOUR'])
+             - vars['power_generated'].var[(i, u)] * (1 / settings['INTERVALS_PER_HOUR']))
         mod += condition, label
     return mod
 
 
-def max_stored_energy(self, mod):
-    for i in self.sets['intervals']:
-        for u in self.sets['units_storage']:
+def max_stored_energy(sets, data, vars, mod):
+    for i in sets['intervals'].indices:
+        for u in sets['units_storage'].indices:
             label = 'max_stored_energy_%s_int_%s' % (u, i)
+            
             condition = \
-                (self.vars['energy_in_storage_MWh'][(i, u)]
+                (
+                 vars['energy_in_reservoir'].var[(i, u)]
                  <=
-                 self.unit_data['StorageCap_h'][u]
-                 * self.unit_data['Capacity_MW'][u])
+                 data.units['StorageCap_h'][u] * data.units['Capacity_MW'][u]
+                )
+
             mod += condition, label
     return mod
 
 
-def max_charge(self, mod):
-    for i in self.sets['intervals']:
-        for u in self.sets['units_storage']:
+def max_charge(sets, data, vars, mod):
+    for i in sets['intervals'].indices:
+        for u in sets['units_storage'].indices:
             label = 'max_charge_%s_int_%s' % (u, i)
             condition = \
-                (self.vars['charge_after_losses_MW'][(i, u)]
+                (vars['charge_after_losses'].var[(i, u)]
                  <=
-                 self.unit_data['RTEfficiency'][u]
-                 * self.unit_data['Capacity_MW'][u])
+                 data.units['RTEfficiency'][u]
+                 * data.units['Capacity_MW'][u])
             mod += condition, label
     return mod
 
 
-def create_constraints_df(self):
+def create_constraints_df(path_to_inputs):
     import os
     import pandas as pd
 
-    self.constraints_df = pd.read_csv(os.path.join(self.inputs_path, 'constraints.csv'), index_col=0)
-    return self
+    constraints_df = pd.read_csv(os.path.join(path_to_inputs, 'constraints.csv'), index_col=0)
+    return constraints_df
 
 
-def add_all_constraints_to_dataframe(self):
+def add_all_constraints_to_dataframe(sets, data, vars, settings, mod, constraints_df):
 
-    if self.constraints_df['Include']['supply_eq_demand'] == 1:
-        self.mod = supply_eq_demand(self, self.mod)
+    if constraints_df['Include']['supply_eq_demand'] == 1:
+        mod = supply_eq_demand(sets, data, vars, mod)
 
-    if self.constraints_df['Include']['power_lt_capacity'] == 1:
-        self.mod = power_lt_capacity(self, self.mod)
+    if constraints_df['Include']['power_lt_capacity'] == 1:
+        mod = power_lt_capacity(sets, data, vars, mod)
 
-    if self.constraints_df['Include']['intermittent_resource_availability'] == 1:
-        self.mod = intermittent_resource_availability(self, self.mod)
+    if constraints_df['Include']['intermittent_resource_availability'] == 1:
+        mod = intermittent_resource_availability(sets, data, vars, mod)
     
-    if self.constraints_df['Include']['energy_storage_continuity'] == 1:
-        self.mod = energy_storage_continuity(self, self.mod)
+    if constraints_df['Include']['commitment_continuity'] == 1:
+        mod = commitment_continuity(sets, data, vars, mod)
     
-    if self.constraints_df['Include']['energy_storage_continuity_first_interval'] == 1:
-        self.mod = energy_storage_continuity_first_interval(self, self.mod)
+    if constraints_df['Include']['power_lt_committed_capacity'] == 1:
+        mod = power_lt_committed_capacity(sets, data, vars, mod)
     
-    if self.constraints_df['Include']['max_stored_energy'] == 1:
-        self.mod = max_stored_energy(self, self.mod)
+    if constraints_df['Include']['power_gt_min_stable_gen'] == 1:
+        mod = power_gt_min_stable_gen(sets, data, vars, mod)
+    
+    if constraints_df['Include']['energy_storage_continuity'] == 1:
+        mod = energy_storage_continuity(sets, data, vars, mod, settings)
+    
+    if constraints_df['Include']['energy_storage_continuity_first_interval'] == 1:
+        mod = energy_storage_continuity_first_interval(sets, data, vars, mod, settings)
+    
+    if constraints_df['Include']['max_stored_energy'] == 1:
+        mod = max_stored_energy(sets, data, vars, mod)
 
-    if self.constraints_df['Include']['max_charge'] == 1:
-        self.mod = max_charge(self, self.mod)
+    if constraints_df['Include']['max_charge'] == 1:
+        mod = max_charge(sets, data, vars, mod)
 
-
-    return self
+    return mod

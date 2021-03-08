@@ -9,7 +9,7 @@ setup(
     author='Daniel Marshman',
     author_email='daniel.marshman@protonmail.com',
     url='https://github.com/seagulljim/denki-uc',
-    packages=['denkiuc'],
+    packages=find_packages(),
     install_requires=['pulp', 'pandas'],
     license='GNU General Public License v3.0'
 )

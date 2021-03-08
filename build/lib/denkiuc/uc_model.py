@@ -3,31 +3,38 @@ import pandas as pd
 import pulp as pp
 import sys
 
-class Model():
-    def __init__(self, name, inputs_path):
+path_to_denki = os.path.split(os.path.abspath(__file__))[0]
+print(path_to_denki)
+
+class ucModel():
+    def __init__(self, name, path_to_inputs):
+        import denkiuc.load_data as ld
+        import denkiuc.variables as va
+
         print()
         print("-------------------------------------------------------------------------")
         print()
 
         self.name = name
-        self.inputs_path = inputs_path
+        self.path_to_inputs = path_to_inputs
+        self.results = dict()
 
         print("Initiating UC model called", self.name)
-        print("Using database folder located at   ", inputs_path)
+        print("Using database folder located at   ", path_to_inputs)
 
-        if not os.path.exists(self.inputs_path):
+        if not os.path.exists(self.path_to_inputs):
             print("Inputs path does not exist. Exiting")
             return
-        self.module_path = module_path
 
-        self.INTERVALS_PER_HOUR = 2
-        self.UNS_LOAD_PNTY = 10000
-        self.UNS_RESERVE_PNTY = 10000
-        self.UNS_INERTIA_PNTY = 10000
-        print("Remember to define INTERVALS PER HOUR")
+        self.data = ld.Data(path_to_inputs)
+        self.settings = ld.load_settings(path_to_inputs)
+        self.sets = ld.load_master_sets(self.data)
+        self.sets = ld.load_unit_subsets(self.data, self.sets)
+        self.data.validate_initial_state_data(self.sets)
+        self.vars = va.make_all_variables(self.sets)
+        
+        self.path_to_outputs = os.path.join(self.settings['OUTPUTS_PATH'], self.name)
 
-        self.load_parameters()
-        self.create_variables()
         self.build_model()
         self.solve_model()
         self.store_results()
@@ -36,62 +43,15 @@ class Model():
         print()
         print("---------------------------- Model generated ----------------------------")
 
-    def load_parameters(self):
-        import load_parameters as lp
-
-        self = lp.load_settings(self)
-        self = lp.load_traces(self)
-        self = lp.load_unit_data(self)
-        self = lp.create_sets(self)
-        self = lp.load_initial_state(self)
-
-    def create_variables(self):
-        import variables as vr
-
-        self.vars= dict()
-
-        self.vars['commit_status'] = \
-            vr.commitment_status(self.sets['intervals'], self.sets['units'])
-
-        self.vars['energy_in_storage_MWh'] = \
-            vr.energy_in_storage_MWh(self.sets['intervals'], self.sets['units_storage'])
-
-        self.vars['inertia_MWsec'] = \
-            vr.inertia(self.sets['intervals'], self.sets['units_commit'])
-
-        self.vars['power_generated_MW'] = \
-            vr.power_generated_MW(self.sets['intervals'], self.sets['units'])
-
-        self.vars['reserve_MW'] = \
-            vr.reserve_MW(self.sets['intervals'], self.sets['units'])
-
-        self.vars['shut_down_status'] = \
-            vr.shut_down_status(self.sets['intervals'], self.sets['units'])
-
-        self.vars['start_up_status'] = \
-            vr.start_up_status(self.sets['intervals'], self.sets['units'])
-
-        self.vars['unserved_demand_MW'] = \
-            vr.unserved_demand_MW(self.sets['intervals'])
-
-        self.vars['unserved_inertia_MWsec'] = \
-            vr.unserved_inertia_MWsec(self.sets['intervals'])
-
-        self.vars['unserved_reserve_MW'] = \
-            vr.unserved_reserve_MW(self.sets['intervals'])
-
-        self.vars['charge_after_losses_MW'] = \
-            vr.charge_after_losses_MW(self.sets['intervals'], self.sets['units_storage'])
-
     def build_model(self):
-        import constraints as cnsts
-        import obj_fn as obj
+        import denkiuc.constraints as cnsts
+        import denkiuc.obj_fn as obj
 
         self.mod = pp.LpProblem(self.name, sense=pp.LpMinimize)
-        self.mod += obj.obj_fn(self)
+        self.mod += obj.obj_fn(self.sets, self.data, self.vars, self.settings)
 
-        self = cnsts.create_constraints_df(self)
-        self = cnsts.add_all_constraints_to_dataframe(self)
+        self.constraints_df = cnsts.create_constraints_df(self.path_to_inputs)
+        self.mod = cnsts.add_all_constraints_to_dataframe(self.sets, self.data, self.vars, self.settings, self.mod, self.constraints_df)
 
     def solve_model(self):
         def exit_if_infeasible(status):
@@ -99,7 +59,6 @@ class Model():
                 print()
                 print(self.name, 'was infeasible. Exiting.')
                 print()
-                exit()
 
         print('Begin solving the model')
         self.mod.solve(pp.PULP_CBC_CMD(timeLimit=120,
@@ -117,22 +76,24 @@ class Model():
         print()
 
     def store_results(self):
-        import store_results_to_df as sr
+        import shutil
+        import denkiuc.add_custom_results as acs
+        
+        path_to_results = os.path.join(self.path_to_outputs, 'results')
 
-        self.results = dict()
-        self.results['commit_status'] = sr.commit_status_to_df(self)
-        self.results['energy_price_$pMWh'] = sr.energy_price_to_df(self)
-        self.results['charge_after_losses_MW'] = sr.charge_after_losses_to_df(self)
-        self.results['charge_before_losses_MW'] = sr.charge_before_losses_to_df(self)
-        self.results['power_generated_MW'] = sr.power_generated_to_df(self)
-        self.results['unserved_demand_MW'] = sr.unserved_demand_to_df(self)
-        self.results['energy_in_storage_MWh'] = sr.energy_in_storage_to_df(self)
+        if os.path.exists(self.path_to_outputs):
+            shutil.rmtree(self.path_to_outputs)
+
+        os.makedirs(path_to_results)
+        
+        for name, dkvar in self.vars.items():
+            dkvar.to_df()
+            dkvar.write_to_file(path_to_results)
+            self.results[dkvar.name] = dkvar.result_df
+
+        self.results = acs.add_custom_results(self.data, self.results, path_to_results) 
 
     def sanity_check_solution(self):
-        import sanity_check_solution as scs
+        import denkiuc.sanity_check_solution as scs
 
-        scs.check_power_lt_capacity(self)
-        scs.total_gen_equals_demand(self)
-        scs.check_energy_charged_lt_charge_capacity(self)
-        scs.check_storage_continiuity(self)
-        scs.check_stored_energy_lt_storage_capacity(self)
+        scs.run_sanity_checks(self.sets, self.data, self.results)
