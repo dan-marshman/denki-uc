@@ -1,8 +1,0 @@
-Unit,PowerGeneration_MW,Commit,TimeSinceLastChange_hrs,StorageLevel_frac
-Coal1,0,0,12,
-Coal2,0,0,12,
-Gas1,0,0,12,
-Gas2,0,0,12,
-SolarPV1,0,,,
-Battery1,0,,,0.5
-Wind1,0,,,

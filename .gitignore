@@ -1,1 +1,5 @@
 *.xlsx
+outputs/*
+build/*
+dist/*
+denkiuc.egg-info/*
