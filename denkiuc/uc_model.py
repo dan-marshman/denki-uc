@@ -33,7 +33,8 @@ class ucModel():
         os.makedirs(self.path_to_outputs)
 
         logger_path = os.path.join(self.path_to_outputs, 'warn.log')
-        logging.basicConfig(filename=logger_path, level=logging.WARNING)
+        if 'unittest' not in sys.argv[0]:
+            logging.basicConfig(filename=logger_path, level=logging.WARNING)
 
 
         self.data = ld.Data(path_to_inputs)
