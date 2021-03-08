@@ -1,5 +1,6 @@
 *.xlsx
 outputs/*
+denki-outputs/*
 build/*
 dist/*
 denkiuc.egg-info/*

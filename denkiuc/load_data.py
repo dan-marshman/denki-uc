@@ -18,6 +18,9 @@ def load_settings(path_to_inputs):
     settings['UNS_LOAD_PNTY'] = int(settings['UNS_LOAD_PNTY'])
     settings['UNS_RESERVE_PNTY'] = int(settings['UNS_RESERVE_PNTY'])
     settings['UNS_INERTIA_PNTY'] = int(settings['UNS_INERTIA_PNTY'])
+
+    if 'OUTPUTS_PATH' not in settings.keys():
+        settings['OUTPUTS_PATH'] = os.path.join(os.getcwd(), 'denki-outputs')
     return settings
 
 class dkSet():
