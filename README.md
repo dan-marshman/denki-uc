@@ -4,7 +4,7 @@ A stochastic unit commitment model in python - still in development
 # Installation
 Clone and install using
 ```
-$ git clone https://github.com/seagulljim/denki-uc
+$ git clone https://github.com/dan-marshman/denki-uc
 $ cd denki-uc
 $ python setup.py install
 ```
