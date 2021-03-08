@@ -1,9 +1,9 @@
-Parameter,Value
-INTERVALS_PER_HOUR,2
-INCL_UNIT_COMMITMENT,TRUE
-INCL_NETWRK_CONSTRAINTS,TRUE
-INCL_AS,FALSE
-UNS_LOAD_PNTY,10000
-UNS_RESERVE_PNTY,1000
-UNS_INERTIA_PNTY,200
-BID_METHOD,AVERAGE_START_COST_OVER_UP_TIME
+Parameter,Value,Type,Description
+INTERVALS_PER_HOUR,2,int,Number of dispatch intervals per hour (e.g. 2 is half-hourly dispatch)
+INCL_UNIT_COMMITMENT,TRUE,bool,True if UC constriants are to be included
+INCL_NETWRK_CONSTRAINTS,TRUE,bool,True if network constraints are to be included
+INCL_AS,FALSE,bool,True if ancillary services are to be included
+UNS_LOAD_PNTY,10000,float,The penalty on unserved load
+UNS_RESERVE_PNTY,1000,float, The penalty on unmet reserve requirements
+UNS_INERTIA_PNTY,200,float, The penalty on unment the inertia requirement
+OUTPUTS_PATH,C:\Users\danie\Documents\denki-uc\outputs,str,The path to the output folder
