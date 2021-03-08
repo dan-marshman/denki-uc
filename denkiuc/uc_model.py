@@ -1,14 +1,14 @@
+import denkiuc.load_data as ld
+import denkiuc.misc_functions as mf
+import denkiuc.variables as va
 import os
 import pandas as pd
 import pulp as pp
 import sys
-import logging
 
 
 class ucModel():
     def __init__(self, name, path_to_inputs):
-        import denkiuc.load_data as ld
-        import denkiuc.variables as va
         import shutil
 
         print()
@@ -17,26 +17,14 @@ class ucModel():
 
         self.name = name
         self.path_to_inputs = path_to_inputs
-        self.results = dict()
-
         print("Initiating UC model called", self.name)
         print("Using database folder located at   ", path_to_inputs)
-
+    
         if not os.path.exists(self.path_to_inputs):
             print("Inputs path does not exist. Exiting")
             return
 
-        self.settings = ld.load_settings(path_to_inputs)
-        self.path_to_outputs = os.path.join(self.settings['OUTPUTS_PATH'], self.name)
-        if os.path.exists(self.path_to_outputs):
-            shutil.rmtree(self.path_to_outputs)
-        os.makedirs(self.path_to_outputs)
-
-        logger_path = os.path.join(self.path_to_outputs, 'warn.log')
-        if 'unittest' not in sys.argv[0]:
-            logging.basicConfig(filename=logger_path, level=logging.WARNING)
-
-
+        self.setup()
         self.data = ld.Data(path_to_inputs)
         self.sets = ld.load_master_sets(self.data)
         self.sets = ld.load_unit_subsets(self.data, self.sets)
@@ -47,6 +35,12 @@ class ucModel():
 
         print("\n---- Model built ----\n")
 
+    def setup(self):
+        self.settings = ld.load_settings(self.path_to_inputs)
+        self.path_to_outputs = os.path.join(self.settings['OUTPUTS_PATH'], self.name)
+        mf.make_outputs_folder(self.path_to_outputs)
+        mf.set_logger_path(self.path_to_outputs)
+        self.results = dict()
 
     def solve(self):
         self.solve_model()
@@ -68,16 +62,13 @@ class ucModel():
     def solve_model(self):
         def exit_if_infeasible(status):
             if status == 'Infeasible':
-                print()
-                print(self.name, 'was infeasible. Exiting.')
-                print()
+                print("\n", self.name, 'was infeasible. Exiting.')
 
         print('Begin solving the model')
         self.mod.solve(pp.PULP_CBC_CMD(timeLimit=120,
                                   threads=0,
                                   msg=0,
                                   gapRel=0))
-        print('Solve complete')
 
         self.optimality_status = pp.LpStatus[self.mod.status]
         print('Model status: %s' % self.optimality_status)
