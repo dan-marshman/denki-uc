@@ -9,7 +9,9 @@ $ cd denki-uc
 $ python setup.py install
 ```
 Test the package using
-python main.py
+```
+$ python main.py
+```
 This will run a test set of input data, contained in 'denki-uc/examples/test1'. Results files are written as .csv files in denki-outputs by default.
 
 # Usage
