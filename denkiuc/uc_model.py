@@ -9,6 +9,7 @@ class ucModel():
     def __init__(self, name, path_to_inputs):
         import denkiuc.load_data as ld
         import denkiuc.variables as va
+        import shutil
 
         print()
         print("-------------------------------------------------------------------------")
@@ -27,8 +28,12 @@ class ucModel():
 
         self.settings = ld.load_settings(path_to_inputs)
         self.path_to_outputs = os.path.join(self.settings['OUTPUTS_PATH'], self.name)
-        logging.basicConfig(filename=os.path.join(self.path_to_outputs, 'warn.log'),
-                            level=logging.WARNING)
+        if os.path.exists(self.path_to_outputs):
+            shutil.rmtree(self.path_to_outputs)
+        os.makedirs(self.path_to_outputs)
+
+        logger_path = os.path.join(self.path_to_outputs, 'warn.log')
+        logging.basicConfig(filename=logger_path, level=logging.WARNING)
 
 
         self.data = ld.Data(path_to_inputs)
@@ -85,9 +90,6 @@ class ucModel():
         import denkiuc.add_custom_results as acs
 
         path_to_results = os.path.join(self.path_to_outputs, 'results')
-
-        if os.path.exists(self.path_to_outputs):
-            shutil.rmtree(self.path_to_outputs)
 
         os.makedirs(path_to_results)
 
