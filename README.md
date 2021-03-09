@@ -20,14 +20,14 @@ Currently in development.
 ## Overview
 The unit commitment problem describes the problem of deciding when to turn generating stations on and off, to meet electricity demand.  With increasing variability from renewable generation, these decisions become more complex.
 
-Denki-UC can be be used to study:
+For example, Denki-UC can be be used to study:
 * The impact of wind, solar and demand uncertainty on unit commitment decisions.
 * Evolution of electricity prices, and market performance in different power systems.
 * Impacts on ancillary services - e.g. reserves and inertia, from growing renewables.
 
 For the UC model formulation and examples of its usage, see the following:
-1. [Marshman, D., Brear, M., Jeppesen, M. and Ring, B., 2020. Performance of wholesale electricity markets with high wind penetration. Energy Economics, 89, p.104803.](https://www.sciencedirect.com/science/article/pii/S0140988320301432)
-2. [Marshman, D., 2018. Performance of electricity markets & power plant investments in the transition to a low-carbon power system](https://minerva-access.unimelb.edu.au/bitstream/handle/11343/222168/Revised%20Thesis.pdf?sequence=1&isAllowed=y)
+1. [Marshman, D., Brear, M., Jeppesen, M. and Ring, B., 2020. *Performance of wholesale electricity markets with high wind penetration.* Energy Economics, 89, p.104803.](https://www.sciencedirect.com/science/article/pii/S0140988320301432)
+2. [Marshman, D., 2018. *Performance of electricity markets & power plant investments in the transition to a low-carbon power system*. Doctoral thesis.](https://minerva-access.unimelb.edu.au/bitstream/handle/11343/222168/Revised%20Thesis.pdf?sequence=1&isAllowed=y)
 
 ## Installation
 Clone this repo, and then install using
@@ -43,7 +43,7 @@ $ python main.py
 This will run a test set of input data, viewed in '/examples/test1'. Results files will be written as .csv files in the directory 'denki-outputs' by default.
 
 ## Getting started
-This module runs a unit commitment simulation by calling an instance of a ucModel from uc_model.py, which takes two arguments
+The module runs a unit commitment simulation by calling an instance of a ucModel from uc_model.py, which takes two arguments
 1. The name of your simulation (e.g. "MyModel")
 2. The path to the input data directory (e.g. 'path\to\inputs')
 
@@ -53,7 +53,7 @@ import denkiuc.uc_model as uc
 
 yourModel = uc.ucModel(name='MyModel', path_to_inputs='<denki_path>\examples\test1')
 ```
-replacing *<denki_path>* with the path where you cloned the repo.  In general, 'path_to_inputs' argument should contain all input data (e.g. electricity demand, generating unit data, etc), and a 'settings.csv', which controls how the model behaves.
+replacing *<denki_path>* with the path where you cloned the repo.  This will load test1 in the examples folder.  In general, 'path_to_inputs' argument should contain all input data (e.g. electricity demand, generating unit data, etc), and a 'settings.csv', which controls how the model behaves.
 
 At this point, you will have built a model - but not yet solved it.  To do so, use the 'solve()' method, i.e.
 ```
@@ -61,7 +61,7 @@ yourModel.solve()
 ```
 This will solve the UC optimisation problem, and write outputs to 'outputs_folder\MyModel\results', with this path being specified in your settings.csv file.
 ### Overview of the input files
-Within the 'examples' folder are example input data collections.
+A minimal set of input data is described in this section. Within the 'examples' folder are example input data collections.  
 #### settings.csv
 This contains a number of parameters, which control how the simulation behaves.  For example, UC constraints may be turned on or off, and the penalty on unserved load/reserves/inertia may be set.
 The example file specifies the type of each parameters (e.g. string, integer, boolean, etc), and also gives a short description. Only the 'Value' column should be changed.
@@ -85,5 +85,6 @@ Please see the open issues if you are interested in contributing. As we are in a
 This may be used in accordance with the GPL3.0 license, but please see the next subsection for citation details if publishing results from use of the model.  
 ### Citing this software
 If publishing work based on results generated from this model, we ask that you cite the following paper:
+[Marshman, D., Brear, M., Jeppesen, M. and Ring, B., 2020. *Performance of wholesale electricity markets with high wind penetration.* Energy Economics, 89, p.104803.](https://www.sciencedirect.com/science/article/pii/S0140988320301432)
 ## Detailed documentation
 Coming soon.  In the meantime, see chapter 3 of Daniel Marshman's [thesis](https://minerva-access.unimelb.edu.au/bitstream/handle/11343/222168/Revised%20Thesis.pdf?sequence=1&isAllowed=y)
