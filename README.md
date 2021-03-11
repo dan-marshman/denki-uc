@@ -80,11 +80,11 @@ This specifies the initial state of the system, immediately prior to the first i
 Please see the open issues if you are interested in contributing. As we are in a state of development, there is plenty to do. We are happy to ackowledge all contributors.
 ## Authors & Contributors
 * Daniel Marshman - daniel.marshman@protonmail.com
-
 ## License
 This may be used in accordance with the GPL3.0 license, but please see the next subsection for citation details if publishing results from use of the model.  
-### Citing this software
-If publishing work based on results generated from this model, we ask that you cite the following paper:
+
+If you are publishing based on results generated from this model, we ask that you cite the following paper:
+
 [Marshman, D., Brear, M., Jeppesen, M. and Ring, B., 2020. *Performance of wholesale electricity markets with high wind penetration.* Energy Economics, 89, p.104803.](https://www.sciencedirect.com/science/article/pii/S0140988320301432)
 ## Detailed documentation
 Coming soon.  In the meantime, see chapter 3 of Daniel Marshman's [thesis](https://minerva-access.unimelb.edu.au/bitstream/handle/11343/222168/Revised%20Thesis.pdf?sequence=1&isAllowed=y)
