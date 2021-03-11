@@ -9,3 +9,4 @@ energy_storage_continuity,1
 energy_storage_continuity_first_interval,1
 max_stored_energy,1
 max_charge,1
+max_units_committed,1

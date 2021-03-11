@@ -38,7 +38,7 @@ def build_obj_start_cost_term(sets, data, vars):
 
     obj_start_ups = \
         pp.lpSum(
-                 [vars['start_up_status'].var[(i, u)] * data.units['StartCost_$'][u]
+                 [vars['num_starting_up'].var[(i, u)] * data.units['StartCost_$'][u]
                  for i in sets['intervals'].indices for u in sets['units_commit'].indices]
                 )
 

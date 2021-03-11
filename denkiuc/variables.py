@@ -6,22 +6,22 @@ def make_all_variables(sets):
     vars = dict()    
 
     intervals_units = [sets['intervals'], sets['units']]
-    vars['power_generated'] =dkVariable('power_generated', 'MW', intervals_units)
-    vars['reserve_enablement'] =dkVariable('reserve_enablement', 'MW', intervals_units)
+    vars['power_generated'] = dkVariable('power_generated', 'MW', intervals_units)
+    vars['reserve_enablement'] = dkVariable('reserve_enablement', 'MW', intervals_units)
     
     intervals_units_commit = [sets['intervals'], sets['units_commit']]
-    vars['commit_status'] =dkVariable('commit_status', 'Binary', intervals_units_commit, 'Binary')
-    vars['inertia_provided'] =dkVariable('inertia_provided', 'MW.s', intervals_units_commit)
-    vars['shut_down_status'] =dkVariable('shut_down_status', 'Binary', intervals_units_commit, 'Binary')
-    vars['start_up_status'] =dkVariable('start_up_status', 'Binary', intervals_units_commit, 'Binary')
+    vars['num_commited'] = dkVariable('commit_status', 'NumUnits', intervals_units_commit, 'Integer')
+    vars['inertia_provided'] = dkVariable('inertia_provided', 'MW.s', intervals_units_commit)
+    vars['num_shutting_down'] = dkVariable('shut_down_status', 'NumUnits', intervals_units_commit, 'Integer')
+    vars['num_starting_up'] = dkVariable('start_up_status', 'NumUnits', intervals_units_commit, 'Integer')
     
     intervals_units_storage = [sets['intervals'], sets['units_storage']]
-    vars['charge_after_losses'] =dkVariable('charge_after_losses', 'MW', intervals_units_storage)
-    vars['energy_in_reservoir'] =dkVariable('energy_in_reservoir', 'MWh', intervals_units_storage)
+    vars['charge_after_losses'] = dkVariable('charge_after_losses', 'MW', intervals_units_storage)
+    vars['energy_in_reservoir'] = dkVariable('energy_in_reservoir', 'MWh', intervals_units_storage)
     
-    vars['unserved_inertia'] =dkVariable('unserved_inertia', 'MW.s', [sets['intervals']])
-    vars['unserved_power'] =dkVariable('unserved_power', 'MW', [sets['intervals']])
-    vars['unserved_reserve'] =dkVariable('unserved_reserve', 'MW', [sets['intervals']])
+    vars['unserved_inertia'] = dkVariable('unserved_inertia', 'MW.s', [sets['intervals']])
+    vars['unserved_power'] = dkVariable('unserved_power', 'MW', [sets['intervals']])
+    vars['unserved_reserve'] = dkVariable('unserved_reserve', 'MW', [sets['intervals']])
     
     return vars
 
@@ -65,23 +65,6 @@ class dkVariable():
                                   cat=self.type)
         return var
 
-    # def dkSum(self, name_of_set_to_sum):
-        # # print(self.sets_indices)
-        # # print(self.sets)
-        # print()
-        # print(self.name)
-
-        # for pos, set in enumerate(self.sets):
-            # if set.name == name_of_set_to_sum:
-                # set_to_sum = set
-        # print(set_to_sum.indices, pos)
-        # sum_indices = set_to_sum.indices.copy()
-        # sum_list = [self.var[(i)] for i in set_to_sum.indices]
-        # print(sum_list)
-
-        # exit()
-        # summed_set = pp.lpSum()
-
     def to_df(self):
         import pandas as pd
 
@@ -115,7 +98,7 @@ class dkVariable():
 
         self.result_df.index.name = sets_order[0].name
         self.result_df = self.result_df.astype(float)
-        if self.type == 'Binary':
+        if self.type == 'Binary' or self.type == 'Integer':
             self.result_df = self.result_df.astype(int)
 
     def write_to_file(self, write_dir):

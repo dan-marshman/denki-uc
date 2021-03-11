@@ -1,4 +1,4 @@
-Unit,PowerGeneration_MW,Commit,TimeSinceLastChange_hrs,StorageLevel_frac
+Unit,PowerGeneration_MW,NumCommited,TimeSinceLastChange_hrs,StorageLevel_frac
 Coal1,300,1,12,
 Coal2,0,0,12,
 Gas1,0,0,12,

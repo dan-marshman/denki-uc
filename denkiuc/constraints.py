@@ -63,11 +63,11 @@ def commitment_continuity(sets, data, vars, mod):
 
                 condition = \
                     (
-                     vars['commit_status'].var[(i, u)] 
+                     vars['num_commited'].var[(i, u)] 
                      == 
-                     data.initial_state['Commit'][u]
-                     + vars['start_up_status'].var[(i, u)]
-                     - vars['shut_down_status'].var[(i, u)]
+                     data.initial_state['NumCommited'][u]
+                     + vars['num_starting_up'].var[(i, u)]
+                     - vars['num_shutting_down'].var[(i, u)]
                      )
 
             if i > min(sets['intervals'].indices):
@@ -75,12 +75,27 @@ def commitment_continuity(sets, data, vars, mod):
 
                 condition = \
                     (
-                     vars['commit_status'].var[(i, u)] 
+                     vars['num_commited'].var[(i, u)] 
                      == 
-                     vars['commit_status'].var[(i-1, u)]
-                     + vars['start_up_status'].var[(i, u)]
-                     - vars['shut_down_status'].var[(i, u)]
+                     vars['num_commited'].var[(i-1, u)]
+                     + vars['num_starting_up'].var[(i, u)]
+                     - vars['num_shutting_down'].var[(i, u)]
                      )
+
+            mod += condition, label
+
+    return mod
+
+
+def max_units_committed(sets, data, vars, mod):
+    for i in sets['intervals'].indices:
+        for u in sets['units_commit'].indices:
+            label = 'num_units_commit_lt_exist_%s_int_%s' % (u, i)
+
+            condition = \
+                (vars['num_commited'].var[(i, u)] 
+                 <= 
+                 data.units['NoUnits'][u])
 
             mod += condition, label
 
@@ -95,7 +110,7 @@ def power_lt_committed_capacity(sets, data, vars, mod):
             condition = \
                 (vars['power_generated'].var[(i, u)] + vars['reserve_enablement'].var[(i, u)]
                  <=
-                 vars['commit_status'].var[(i, u)] * data.units['Capacity_MW'][u])
+                 vars['num_commited'].var[(i, u)] * data.units['Capacity_MW'][u])
 
             mod += condition, label
     return mod
@@ -109,7 +124,7 @@ def power_gt_min_stable_gen(sets, data, vars, mod):
             condition = \
                 (vars['power_generated'].var[(i, u)]
                  >=
-                 vars['commit_status'].var[(i, u)] * data.units['Capacity_MW'][u] * data.units['MinGen'][u])
+                 vars['num_commited'].var[(i, u)] * data.units['Capacity_MW'][u] * data.units['MinGen'][u])
 
             mod += condition, label
     return mod
@@ -215,6 +230,9 @@ def add_all_constraints_to_dataframe(sets, data, vars, settings, mod, constraint
     
     if constraints_df['Include']['commitment_continuity'] == 1:
         mod = commitment_continuity(sets, data, vars, mod)
+    
+    if constraints_df['Include']['max_units_committed'] == 1:
+        mod = max_units_committed(sets, data, vars, mod)
     
     if constraints_df['Include']['power_lt_committed_capacity'] == 1:
         mod = power_lt_committed_capacity(sets, data, vars, mod)

@@ -25,16 +25,23 @@ class load_dataTests(unittest.TestCase):
 
     def test_initial_state_commit_is_wrong_1(self):
         test_model = uc.ucModel('test1', test1_path)
-        test_model.data.initial_state['Commit']['Coal1'] = 1.8
+        test_model.data.initial_state['NumCommited']['Coal1'] = 1.8
         test_model.data.validate_initial_state_data(test_model.sets)
-        result = test_model.data.initial_state['Commit']['Coal1']
+        result = test_model.data.initial_state['NumCommited']['Coal1']
         self.assertEqual(result, 1)
 
     def test_initial_state_commit_is_wrong_2(self):
         test_model = uc.ucModel('test1', test1_path)
-        test_model.data.initial_state['Commit']['Coal1'] = 0.3
+        test_model.data.initial_state['NumCommited']['Coal1'] = -0.3
         test_model.data.validate_initial_state_data(test_model.sets)
-        result = test_model.data.initial_state['Commit']['Coal1']
+        result = test_model.data.initial_state['NumCommited']['Coal1']
+        self.assertEqual(result, 0)
+
+    def test_initial_state_commit_is_wrong_3(self):
+        test_model = uc.ucModel('test1', test1_path)
+        test_model.data.initial_state['NumCommited']['Coal1'] = 0.3
+        test_model.data.validate_initial_state_data(test_model.sets)
+        result = test_model.data.initial_state['NumCommited']['Coal1']
         self.assertEqual(result, 0)
 
 class settingsTests(unittest.TestCase):

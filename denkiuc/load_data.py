@@ -97,7 +97,7 @@ class Data:
                 traces[file] = df
             else:
                 print("Looking for trace file - doesn't exist", file_path)
-                print()
+                exit()
 
         return traces
 
@@ -108,8 +108,8 @@ class Data:
             unit_data = pd.read_csv(unit_data_path, index_col=0)
 
         else:
-            print("Looking for unit data file - doesn't exist", file_path)
-            print()
+            print("Looking for unit data file - doesn't exist", unit_data_path)
+            exit()
 
         return unit_data
 
@@ -120,30 +120,38 @@ class Data:
             initial_state = pd.read_csv(initial_state_path, index_col=0)
 
         else:
-            print("Looking for initial state file - doesn't exist", file_path)
-            print()
+            print("Looking for initial state file - doesn't exist", initial_state_path)
+            exit()
 
         return initial_state
 
     def validate_initial_state_data(self, sets):
         for u in sets['units_commit'].indices:
-            commit_val = self.initial_state['Commit'][u]
-            if commit_val not in [0, 1]:
-                new_commit_val = round(commit_val, 0)
-                if new_commit_val > 1:
-                    new_commit_val = 1
-                if new_commit_val < 0:
-                    new_commit_val = 0
-                logging.error("initial state had commit value of %f for unit %s. Changed to %d" % (commit_val, u, new_commit_val))
-                self.initial_state.loc[u, 'Commit'] = new_commit_val
+            commit_val = self.initial_state['NumCommited'][u]
+            units_built_val = self.units['NoUnits'][u]
+
+            if commit_val != int(commit_val):
+                logging.error("initial state had commit value of %f for unit %s." % (commit_val, u),
+                    "Changed to %d" % int(commit_val))
+                self.initial_state.loc[u, 'NumCommited'] = int(commit_val)
+
+            if commit_val > units_built_val: 
+                logging.error("initial state had more units committed (%f) for unit %s than exist" % (commit_val, u),
+                    "(%d). Changed to %d." % (units_built_val, units_built_val))
+                self.initial_state.loc[u, 'NumCommited'] = units_built_val
+
+            if commit_val < 0:
+                logging.error("initial state had commit value of %f for unit %s." % (commit_val, u),
+                    "Changed to 0")
+                self.initial_state.loc[u, 'NumCommited'] = 0
 
             initial_power_MW = self.initial_state['PowerGeneration_MW'][u] 
             
             minimum_initial_power_MW = \
-                self.initial_state['Commit'][u] * self.units['MinGen'][u] * self.units['Capacity_MW'][u]
+                self.initial_state['NumCommited'][u] * self.units['MinGen'][u] * self.units['Capacity_MW'][u]
             
             maximum_initial_power_MW = \
-                self.initial_state['Commit'][u] * self.units['Capacity_MW'][u]
+                self.initial_state['NumCommited'][u] * self.units['Capacity_MW'][u]
 
             if  initial_power_MW < minimum_initial_power_MW:
                 print('Unit %s has initial power below its minimum generation based on commitment' % u)

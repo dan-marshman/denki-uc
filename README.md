@@ -61,7 +61,7 @@ yourModel.solve()
 ```
 This will solve the UC optimisation problem, and write outputs to 'outputs_folder\MyModel\results', with this path being specified in your settings.csv file.
 ### Overview of the input files
-A minimal set of input data is described in this section. Within the 'examples' folder are example input data collections.  
+A minimal set of input data is described in this section.Within the 'examples' folder are example input data collections.  
 #### settings.csv
 This contains a number of parameters, which control how the simulation behaves.  For example, UC constraints may be turned on or off, and the penalty on unserved load/reserves/inertia may be set.
 The example file specifies the type of each parameters (e.g. string, integer, boolean, etc), and also gives a short description. Only the 'Value' column should be changed.
