@@ -96,6 +96,12 @@ class setsTests(unittest.TestCase):
             validate_result = sub_set.validate_set(master_set)
         self.assertEqual(str(error.exception), 'Subset validation error')
 
+    def test_look_ahead_intervals_correct(self):
+        test_model = uc.ucModel('test1', test1_path)
+        actual_result = test_model.sets['look_ahead_intervals'].indices
+        expected_set = list(range(28, 48))
+        self.assertEqual(expected_set, actual_result)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -28,6 +28,7 @@ class ucModel():
         self.data = ld.Data(path_to_inputs)
         self.sets = ld.load_master_sets(self.data)
         self.sets = ld.load_unit_subsets(self.data, self.sets)
+        self.sets = ld.load_interval_subsets(self.settings, self.sets)
         self.data.validate_initial_state_data(self.sets)
         self.vars = va.make_all_variables(self.sets)
 
@@ -87,8 +88,12 @@ class ucModel():
 
         for name, dkvar in self.vars.items():
             dkvar.to_df()
-            dkvar.write_to_file(path_to_results)
             self.results[dkvar.name] = dkvar.result_df
+            dkvar.remove_look_ahead_int_from_results(self.sets['main_intervals'].indices)
+            if self.settings['WRITE_RESULTS_WITH_LOOK_AHEAD']:
+                dkvar.write_to_file(path_to_results, removed_la=False)
+            if self.settings['WRITE_RESULTS_WITHOUT_LOOK_AHEAD']:
+                dkvar.write_to_file(path_to_results, removed_la=True)
 
         self.results = acs.add_custom_results(self.data, self.results, path_to_results) 
 

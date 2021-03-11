@@ -7,3 +7,6 @@ UNS_LOAD_PNTY,10000,float,The penalty on unserved load
 UNS_RESERVE_PNTY,1000,float, The penalty on unmet reserve requirements
 UNS_INERTIA_PNTY,200,float, The penalty on unment the inertia requirement
 OUTPUTS_PATH,C:\Users\danie\Documents\denki-uc\test\outputs,str,The path to the output folder
+LOOK_AHEAD_INTS,20,int
+WRITE_RESULTS_WITH_LOOK_AHEAD,True,bool
+WRITE_RESULTS_WITHOUT_LOOK_AHEAD,True,bool

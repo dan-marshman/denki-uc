@@ -17,6 +17,10 @@ def load_settings(path_to_inputs):
     settings['UNS_LOAD_PNTY'] = int(settings['UNS_LOAD_PNTY'])
     settings['UNS_RESERVE_PNTY'] = int(settings['UNS_RESERVE_PNTY'])
     settings['UNS_INERTIA_PNTY'] = int(settings['UNS_INERTIA_PNTY'])
+    settings['LOOK_AHEAD_INTS'] = int(settings['LOOK_AHEAD_INTS'])
+
+    settings['WRITE_RESULTS_WITH_LOOK_AHEAD'] = bool(settings['WRITE_RESULTS_WITH_LOOK_AHEAD'])
+    settings['WRITE_RESULTS_WITHOUT_LOOK_AHEAD'] = bool(settings['WRITE_RESULTS_WITHOUT_LOOK_AHEAD'])
 
     if 'OUTPUTS_PATH' not in settings.keys():
         settings['OUTPUTS_PATH'] = os.path.join(os.getcwd(), 'denki-outputs')
@@ -37,7 +41,7 @@ class dkSet():
     def validate_set(self, master_set):
         for ind in self.indices:
             if ind not in master_set.indices:
-                print("member of set called %s (%s) is not a member of the master set %s" % (self.name, str(ind), master_set.name))
+                print("\nMember of set called %s (%s) is not a member of the master set %s\n" % (self.name, str(ind), master_set.name))
                 raise ValueError('Subset validation error')
 
     def append_subset(self, subset):
@@ -54,14 +58,25 @@ def load_master_sets(data):
 
 
 def load_unit_subsets(data, sets):
-    sets['units_commit'] = \
-        dkSet('units_commit', create_unit_subsets('Commit', data, sets['units']), sets['units'])
+    units_commit = create_unit_subsets('Commit', data, sets['units'])
+    units_storage = create_unit_subsets('Storage', data, sets['units'])
+    units_variable = create_unit_subsets('Variable', data, sets['units'])
 
-    sets['units_storage'] = \
-        dkSet('units_storage', create_unit_subsets('Storage', data, sets['units']), sets['units'])
+    sets['units_commit'] = dkSet('units_commit', units_commit, sets['units'])
+    sets['units_storage'] = dkSet('units_storage', units_storage, sets['units'])
+    sets['units_variable'] = dkSet('units_variable', units_variable, sets['units'])
 
-    sets['units_variable'] = \
-        dkSet('units_variable', create_unit_subsets('Variable', data, sets['units']), sets['units'])
+    return sets
+
+
+def load_interval_subsets(settings, sets):
+    last_main_interval = len(sets['intervals'].indices) - settings['LOOK_AHEAD_INTS'] - 1
+
+    main_intervals = [i for num, i in enumerate(sets['intervals'].indices) if num <= last_main_interval]
+    look_ahead_intervals = [i for i in sets['intervals'].indices if i not in main_intervals]
+
+    sets['look_ahead_intervals'] = dkSet('look_ahead_intervals', look_ahead_intervals, sets['intervals'])
+    sets['main_intervals'] = dkSet('main_intervals', main_intervals, sets['intervals'])
 
     return sets
 
