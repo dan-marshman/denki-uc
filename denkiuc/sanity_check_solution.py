@@ -20,9 +20,10 @@ def check_power_gt_min_stable_gen(sets, data, results):
             * data.units['MinGen'][u]
 
         for i in sets['intervals'].indices:
-            if results['commit_status'][u][i] == 1 and results['power_generated'][u][i] < mingen_MW:
-                print('Sanity Check: Unit', u, 'Interval', i, 'generating below its min stable gen')
-                errors_count += 1
+            if results['num_commited'][u][i] > 0:
+                if results['power_generated'][u][i] < results['num_commited'][u][i] * mingen_MW:
+                    print('Sanity Check: Unit', u, 'Interval', i, 'generating below its min stable gen')
+                    errors_count += 1
 
     return errors_count
 
@@ -33,7 +34,7 @@ def check_power_lt_committed_capacity(sets, data, results):
     for u in sets['units_commit'].indices:
         unit_capacity = data.units['Capacity_MW'][u]
         for i in sets['intervals'].indices:
-            if results['commit_status'][u][i] == 1 and results['power_generated'][u][i] > unit_capacity:
+            if results['power_generated'][u][i] > results['num_commited'][u][i] * unit_capacity:
                 print('Sanity Check: Unit', u, 'Interval', i, 'generating above its capacity')
                 errors_count += 1
 
@@ -44,12 +45,13 @@ def check_power_lt_capacity(sets, data, results):
     errors_count = 0
 
     for u in list(sets['units'].indices):
-        unit_capacity = data.units['Capacity_MW'][u]
+        total_capacity = data.units['Capacity_MW'][u] * data.units['NoUnits'][u]
 
         for i in sets['intervals'].indices:
-            if results['power_generated'][u][i] > unit_capacity:
+            if results['power_generated'][u][i] > total_capacity:
                 print('Sanity Check: Unit', u, 'Interval', i,
-                      'generating above its capacity')
+                      'generating above its capacity', '(%f > %f)' %
+                      (round(results['power_generated'][u][i]), round(total_capacity)))
                 errors_count += 1
 
     return errors_count
@@ -195,7 +197,6 @@ def check_stored_energy_lt_storage_capacity(sets, data, results):
 
 
 def run_sanity_checks(sets, data, results):
-
     check_power_lt_capacity(sets, data, results)
     check_power_lt_committed_capacity(sets, data, results)
     check_power_gt_min_stable_gen(sets, data, results)

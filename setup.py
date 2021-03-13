@@ -13,6 +13,6 @@ setup(
     url='https://github.com/dan-marshman/denki-uc',
     packages=find_packages(),
     data_files=datafiles,
-    install_requires=['pulp', 'pandas'],
+    install_requires=['pulp', 'pandas', 'numpy'],
     license='GNU General Public License v3.0'
 )

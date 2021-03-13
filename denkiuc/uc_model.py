@@ -26,9 +26,11 @@ class ucModel():
 
         self.setup()
         self.data = ld.Data(path_to_inputs)
-        self.sets = ld.load_master_sets(self.data)
+        self.sets = ld.load_master_sets(self.data, self.settings)
         self.sets = ld.load_unit_subsets(self.data, self.sets)
         self.sets = ld.load_interval_subsets(self.settings, self.sets)
+        self.data.probability_of_scenario = ld.define_scenario_probability(self.sets['scenarios'])
+        self.data.add_arma_scenarios(self.sets['scenarios'])
         self.data.validate_initial_state_data(self.sets)
         self.vars = va.make_all_variables(self.sets)
 
@@ -89,9 +91,12 @@ class ucModel():
         for name, dkvar in self.vars.items():
             dkvar.to_df()
             self.results[dkvar.name] = dkvar.result_df
+
             dkvar.remove_look_ahead_int_from_results(self.sets['main_intervals'].indices)
+
             if self.settings['WRITE_RESULTS_WITH_LOOK_AHEAD']:
                 dkvar.write_to_file(path_to_results, removed_la=False)
+
             if self.settings['WRITE_RESULTS_WITHOUT_LOOK_AHEAD']:
                 dkvar.write_to_file(path_to_results, removed_la=True)
 

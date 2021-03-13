@@ -18,6 +18,7 @@ def load_settings(path_to_inputs):
     settings['UNS_RESERVE_PNTY'] = int(settings['UNS_RESERVE_PNTY'])
     settings['UNS_INERTIA_PNTY'] = int(settings['UNS_INERTIA_PNTY'])
     settings['LOOK_AHEAD_INTS'] = int(settings['LOOK_AHEAD_INTS'])
+    settings['NUM_SCENARIOS'] = int(settings['NUM_SCENARIOS'])
 
     settings['WRITE_RESULTS_WITH_LOOK_AHEAD'] = bool(settings['WRITE_RESULTS_WITH_LOOK_AHEAD'])
     settings['WRITE_RESULTS_WITHOUT_LOOK_AHEAD'] = bool(settings['WRITE_RESULTS_WITHOUT_LOOK_AHEAD'])
@@ -48,11 +49,13 @@ class dkSet():
         self.subsets.append(subset)
 
 
-def load_master_sets(data):
+def load_master_sets(data, settings):
     sets = dict()
 
     sets['intervals'] = dkSet('intervals', data.traces['demand'].index.to_list())
     sets['units'] = dkSet('units', data.units.index.to_list())
+    sets['scenarios'] = dkSet('scenarios', list(range(settings['NUM_SCENARIOS'])))
+        
        
     return sets
 
@@ -80,6 +83,7 @@ def load_interval_subsets(settings, sets):
 
     return sets
 
+
 def create_unit_subsets(subset, data, units):
     module_path = os.path.split(os.path.abspath(__file__))[0]
     path_to_tech_categories_file = os.path.join(module_path, 'technology_categories.csv') 
@@ -93,6 +97,13 @@ def create_unit_subsets(subset, data, units):
             subset_list.append(u)
 
     return subset_list
+
+
+def define_scenario_probability(scenarios):
+    scenario_prob = dict()
+    for s in scenarios.indices:
+        scenario_prob[s] = 1 / len(scenarios.indices)
+    return scenario_prob
 
 
 class Data:
@@ -178,3 +189,42 @@ class Data:
             if self.initial_state['StorageLevel_frac'][u] > 1:
                 print('Unit %s has initial storage fraction greater than 1' % u)
                 exit()
+ 
+    def add_arma_scenarios(self, scenarios):
+        import numpy as np
+
+        module_path = os.path.split(os.path.abspath(__file__))[0]
+        path_to_arma_vals = os.path.join(module_path, 'arma_values.csv') 
+        arma_vals_df = pd.read_csv(path_to_arma_vals, index_col=0)
+
+        for trace_name, trace in self.traces.items():
+            orig_df = self.traces[trace_name]
+
+            df_cols = pd.MultiIndex.from_product([orig_df.columns, scenarios.indices])
+            df_cols = df_cols.set_names(['Region', 'Scenario'])
+            new_trace = pd.DataFrame(index=orig_df.index, columns = df_cols)
+
+            arma_alpha = arma_vals_df[trace_name]['alpha']
+            arma_beta = arma_vals_df[trace_name]['beta']
+            arma_sigma = arma_vals_df[trace_name]['sigma']
+
+            for region in orig_df.columns:
+                new_trace.loc[:, (region, 0)] = orig_df[region]
+                for scenario in scenarios.indices[1:]:
+                    new_trace.loc[:, (region, scenario)] = orig_df[region]
+
+                    forecast_error = [0] * len(new_trace)
+
+                    distribution = np.random.normal(0, arma_sigma, len(new_trace))
+
+                    for i in new_trace.index.to_list()[1:]:
+                        forecast_error[i] = \
+                            arma_alpha * forecast_error[i-1] + distribution[i] + distribution[i-1] * arma_beta
+                        if trace_name == 'demand':
+                            new_trace.loc[i, (region, scenario)] = \
+                                (1 + forecast_error[i]) * new_trace.loc[i, (region, 0)]
+                        else:
+                            new_trace.loc[i, (region, scenario)] = \
+                                min(1, max(0, forecast_error[i] + new_trace.loc[i, (region, 0)]))
+            new_trace.round(5)
+            self.traces[trace_name] = new_trace

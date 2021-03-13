@@ -2,26 +2,25 @@ import pulp as pp
 
 
 def make_all_variables(sets):
-    
     vars = dict()    
 
-    intervals_units = [sets['intervals'], sets['units']]
+    intervals_units = [sets['intervals'], sets['scenarios'], sets['units']]
     vars['power_generated'] = dkVariable('power_generated', 'MW', intervals_units)
     vars['reserve_enablement'] = dkVariable('reserve_enablement', 'MW', intervals_units)
     
     intervals_units_commit = [sets['intervals'], sets['units_commit']]
-    vars['num_commited'] = dkVariable('commit_status', 'NumUnits', intervals_units_commit, 'Integer')
+    vars['num_commited'] = dkVariable('num_commited', 'NumUnits', intervals_units_commit, 'Integer')
     vars['inertia_provided'] = dkVariable('inertia_provided', 'MW.s', intervals_units_commit)
-    vars['num_shutting_down'] = dkVariable('shut_down_status', 'NumUnits', intervals_units_commit, 'Integer')
-    vars['num_starting_up'] = dkVariable('start_up_status', 'NumUnits', intervals_units_commit, 'Integer')
+    vars['num_shutting_down'] = dkVariable('num_shutting_down', 'NumUnits', intervals_units_commit, 'Integer')
+    vars['num_starting_up'] = dkVariable('num_starting_up', 'NumUnits', intervals_units_commit, 'Integer')
     
-    intervals_units_storage = [sets['intervals'], sets['units_storage']]
+    intervals_units_storage = [sets['intervals'], sets['scenarios'], sets['units_storage']]
     vars['charge_after_losses'] = dkVariable('charge_after_losses', 'MW', intervals_units_storage)
     vars['energy_in_reservoir'] = dkVariable('energy_in_reservoir', 'MWh', intervals_units_storage)
     
     vars['unserved_inertia'] = dkVariable('unserved_inertia', 'MW.s', [sets['intervals']])
-    vars['unserved_power'] = dkVariable('unserved_power', 'MW', [sets['intervals']])
-    vars['unserved_reserve'] = dkVariable('unserved_reserve', 'MW', [sets['intervals']])
+    vars['unserved_power'] = dkVariable('unserved_power', 'MW', [sets['intervals'], sets['scenarios']])
+    vars['unserved_reserve'] = dkVariable('unserved_reserve', 'MW', [sets['intervals'], sets['scenarios']])
     
     return vars
 
@@ -57,7 +56,6 @@ class dkVariable():
                 indices_permut_list = temp_list
 
         return indices_permut_list
-    
     def make_pulp_variable(self, sets_indices):
         var = pp.LpVariable.dicts(self.name,
                                   (ind for ind in sets_indices),

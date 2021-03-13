@@ -76,11 +76,12 @@ This specifies the initial state of the system, immediately prior to the first i
 ## Dependencies
 * [pandas](https://github.com/pandas-dev/pandas)
 * [PuLP](https://github.com/coin-or/pulp)
+* [NumPy](https://numpy.org/)
 ## Contributing
 Please see the open issues if you are interested in contributing. As we are in a state of development, there is plenty to do. We are happy to ackowledge all contributors.
 ## Authors & Contributors
 * Daniel Marshman - daniel.marshman@protonmail.com
-## License
+# License
 This may be used in accordance with the GPL3.0 license, but please see the next subsection for citation details if publishing results from use of the model.  
 
 If you are publishing based on results generated from this model, we ask that you cite the following paper:
