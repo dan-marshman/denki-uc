@@ -47,6 +47,7 @@ class ucModel():
 
     def solve(self):
         self.solve_model()
+        exit()
         self.store_results()
         self.sanity_check_solution()
 
