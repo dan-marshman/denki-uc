@@ -8,6 +8,7 @@ UNS_RESERVE_PNTY,1000,float, The penalty on unmet reserve requirements
 UNS_INERTIA_PNTY,200,float, The penalty on unment the inertia requirement
 OUTPUTS_PATH,C:\Users\danie\Documents\denki-uc\outputs,str,The path to the output folder
 LOOK_AHEAD_INTS,24,Number of intervals to be treated as lookahead
-NUM_SCENARIOS,1,int,Number of stochastic scenarios
+NUM_SCENARIOS,3,int,Number of stochastic scenarios
 WRITE_RESULTS_WITH_LOOK_AHEAD,True,bool,If true results with lookahead data are written
 WRITE_RESULTS_WITHOUT_LOOK_AHEAD,True,bool,If true results without lookahead data are written
+RANDOM_SEED,466,Random seed for numpy

@@ -11,3 +11,4 @@ LOOK_AHEAD_INTS,20,int
 NUM_SCENARIOS,1,int,Number of stochastic scenarios
 WRITE_RESULTS_WITH_LOOK_AHEAD,True,bool,If true results with lookahead data are written
 WRITE_RESULTS_WITHOUT_LOOK_AHEAD,True,bool,If true results without lookahead data are written
+RANDOM_SEED,466,Random seed for numpy

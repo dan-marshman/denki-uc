@@ -30,7 +30,7 @@ class ucModel():
         self.sets = ld.load_unit_subsets(self.data, self.sets)
         self.sets = ld.load_interval_subsets(self.settings, self.sets)
         self.data.probability_of_scenario = ld.define_scenario_probability(self.sets['scenarios'])
-        self.data.add_arma_scenarios(self.sets['scenarios'])
+        self.data.add_arma_scenarios(self.sets['scenarios'], self.settings['RANDOM_SEED'])
         self.data.validate_initial_state_data(self.sets)
         self.vars = va.make_all_variables(self.sets)
 

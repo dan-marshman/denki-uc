@@ -44,6 +44,20 @@ class load_dataTests(unittest.TestCase):
         result = test_model.data.initial_state['NumCommited']['Coal1']
         self.assertEqual(result, 0)
 
+    def test_arma_demand(self):
+        test_model = uc.ucModel('test1', test1_path)
+        scenarios = test_model.sets['scenarios']
+        scenarios.indices = list(range(5))
+        random_seed = 12
+        test_model.data.add_arma_scenarios(scenarios, random_seed)
+        result = \
+            (
+             round(test_model.data.traces['demand'][(3, 'Demand')][12], 3),
+             round(test_model.data.traces['wind'][(2, 'Wind')][21], 3),
+             round(test_model.data.traces['solarPV'][(1, 'Solar')][37], 3),
+            )
+        self.assertEqual(result, (2393.924, 0.442, 0))
+
 
 class settingsTests(unittest.TestCase):
     def test_settings_loaded(self):

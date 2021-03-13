@@ -25,7 +25,7 @@ For example, Denki-UC can be be used to study:
 * Evolution of electricity prices, and market performance in different power systems.
 * Impacts on ancillary services - e.g. reserves and inertia, from growing renewables.
 
-For the UC model formulation and examples of its usage, see the following:
+For the unit commitment formulation and examples of the package's usage, see the following:
 1. [Marshman, D., Brear, M., Jeppesen, M. and Ring, B., 2020. *Performance of wholesale electricity markets with high wind penetration.* Energy Economics, 89, p.104803.](https://www.sciencedirect.com/science/article/pii/S0140988320301432)
 2. [Marshman, D., 2018. *Performance of electricity markets & power plant investments in the transition to a low-carbon power system*. Doctoral thesis.](https://minerva-access.unimelb.edu.au/bitstream/handle/11343/222168/Revised%20Thesis.pdf?sequence=1&isAllowed=y)
 

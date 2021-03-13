@@ -19,6 +19,7 @@ def load_settings(path_to_inputs):
     settings['UNS_INERTIA_PNTY'] = int(settings['UNS_INERTIA_PNTY'])
     settings['LOOK_AHEAD_INTS'] = int(settings['LOOK_AHEAD_INTS'])
     settings['NUM_SCENARIOS'] = int(settings['NUM_SCENARIOS'])
+    settings['RANDOM_SEED'] = int(settings['RANDOM_SEED'])
 
     settings['WRITE_RESULTS_WITH_LOOK_AHEAD'] = bool(settings['WRITE_RESULTS_WITH_LOOK_AHEAD'])
     settings['WRITE_RESULTS_WITHOUT_LOOK_AHEAD'] = bool(settings['WRITE_RESULTS_WITHOUT_LOOK_AHEAD'])
@@ -52,7 +53,7 @@ class dkSet():
 def load_master_sets(data, settings):
     sets = dict()
 
-    sets['intervals'] = dkSet('intervals', data.traces['demand'].index.to_list())
+    sets['intervals'] = dkSet('intervals', data.orig_traces['demand'].index.to_list())
     sets['units'] = dkSet('units', data.units.index.to_list())
     sets['scenarios'] = dkSet('scenarios', list(range(settings['NUM_SCENARIOS'])))
         
@@ -108,7 +109,7 @@ def define_scenario_probability(scenarios):
 
 class Data:
     def __init__(self, path_to_inputs):
-        self.traces = self.load_traces(path_to_inputs)
+        self.orig_traces = self.load_traces(path_to_inputs)
         self.units = self.load_unit_data(path_to_inputs)
         self.initial_state = self.load_initial_state(path_to_inputs)
 
@@ -190,15 +191,19 @@ class Data:
                 print('Unit %s has initial storage fraction greater than 1' % u)
                 exit()
  
-    def add_arma_scenarios(self, scenarios):
+    def add_arma_scenarios(self, scenarios, random_seed):
         import numpy as np
+
+        np.random.seed(random_seed)
+
+        self.traces = dict()
 
         module_path = os.path.split(os.path.abspath(__file__))[0]
         path_to_arma_vals = os.path.join(module_path, 'arma_values.csv') 
         arma_vals_df = pd.read_csv(path_to_arma_vals, index_col=0)
 
-        for trace_name, trace in self.traces.items():
-            orig_df = self.traces[trace_name]
+        for trace_name, trace in self.orig_traces.items():
+            orig_df = self.orig_traces[trace_name]
 
             df_cols = pd.MultiIndex.from_product([scenarios.indices, orig_df.columns])
             df_cols = df_cols.set_names(['Scenario', 'Region'])
@@ -227,4 +232,5 @@ class Data:
                             new_trace.loc[i, (scenario, region)] = \
                                 min(1, max(0, forecast_error[i] + new_trace.loc[i, (0, region)]))
             new_trace.round(5)
+            
             self.traces[trace_name] = new_trace
