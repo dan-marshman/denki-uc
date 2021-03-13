@@ -200,8 +200,8 @@ class Data:
         for trace_name, trace in self.traces.items():
             orig_df = self.traces[trace_name]
 
-            df_cols = pd.MultiIndex.from_product([orig_df.columns, scenarios.indices])
-            df_cols = df_cols.set_names(['Region', 'Scenario'])
+            df_cols = pd.MultiIndex.from_product([scenarios.indices, orig_df.columns])
+            df_cols = df_cols.set_names(['Scenario', 'Region'])
             new_trace = pd.DataFrame(index=orig_df.index, columns = df_cols)
 
             arma_alpha = arma_vals_df[trace_name]['alpha']
@@ -209,9 +209,9 @@ class Data:
             arma_sigma = arma_vals_df[trace_name]['sigma']
 
             for region in orig_df.columns:
-                new_trace.loc[:, (region, 0)] = orig_df[region]
+                new_trace.loc[:, (0, region)] = orig_df[region]
                 for scenario in scenarios.indices[1:]:
-                    new_trace.loc[:, (region, scenario)] = orig_df[region]
+                    new_trace.loc[:, (scenario, region)] = orig_df[region]
 
                     forecast_error = [0] * len(new_trace)
 
@@ -221,10 +221,10 @@ class Data:
                         forecast_error[i] = \
                             arma_alpha * forecast_error[i-1] + distribution[i] + distribution[i-1] * arma_beta
                         if trace_name == 'demand':
-                            new_trace.loc[i, (region, scenario)] = \
-                                (1 + forecast_error[i]) * new_trace.loc[i, (region, 0)]
+                            new_trace.loc[i, (scenario, region)] = \
+                                (1 + forecast_error[i]) * new_trace.loc[i, (0, region)]
                         else:
-                            new_trace.loc[i, (region, scenario)] = \
-                                min(1, max(0, forecast_error[i] + new_trace.loc[i, (region, 0)]))
+                            new_trace.loc[i, (scenario, region)] = \
+                                min(1, max(0, forecast_error[i] + new_trace.loc[i, (0, region)]))
             new_trace.round(5)
             self.traces[trace_name] = new_trace

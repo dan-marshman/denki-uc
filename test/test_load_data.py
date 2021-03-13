@@ -10,7 +10,7 @@ test1_path = os.path.join(uc.path_to_tests, 'test1')
 class load_dataTests(unittest.TestCase):
     def test_traces_are_loaded(self):
         test_model = uc.ucModel('test1', test1_path)
-        val = test_model.data.traces['demand']['VIC'][0] 
+        val = test_model.data.traces['demand'][(0, 'Demand')][0] 
         self.assertEqual(val, 1000)
 
     def test_unit_data_is_loaded(self):
@@ -43,6 +43,7 @@ class load_dataTests(unittest.TestCase):
         test_model.data.validate_initial_state_data(test_model.sets)
         result = test_model.data.initial_state['NumCommited']['Coal1']
         self.assertEqual(result, 0)
+
 
 class settingsTests(unittest.TestCase):
     def test_settings_loaded(self):

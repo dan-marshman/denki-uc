@@ -13,7 +13,7 @@ def supply_eq_demand(sets, data, vars, mod):
                            for u in sets['units'].indices])
                  + vars['unserved_power'].var[(i, s)]
                  ==
-                 data.traces['demand'][('VIC', s)][i]
+                 data.traces['demand'][(s, 'Demand')][i]
                  + pp.lpSum([vars['charge_after_losses'].var[(i, s, u)]
                              * (1 / data.units['RTEfficiency'][u])
                              for u in sets['units_storage'].indices])
@@ -26,9 +26,9 @@ def supply_eq_demand(sets, data, vars, mod):
 def intermittent_resource_availability(sets, data, vars, mod):
     def get_resource_trace(scenario, region, technology):
         if technology == 'Wind':
-            trace = data.traces['wind'][('VIC', scenario)].to_dict()
+            trace = data.traces['wind'][(scenario, 'Wind')].to_dict()
         elif technology == 'SolarPV':
-            trace = data.traces['solarPV'][('VIC', scenario)].to_dict()
+            trace = data.traces['solarPV'][(scenario, 'Solar')].to_dict()
         else:
             print('Technology not known')
             exit()

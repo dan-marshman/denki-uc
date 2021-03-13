@@ -1,16 +1,3 @@
-def only_gen_if_committed(commit_status, power_sched):
-    errors_count = 0
-
-    for u in list(commit_status):
-        for i in commit_status.index.tolist():
-            if commit_status[u][i] == 0 and power_sched[u][i] != 0:
-                print('Sanity Check: Unit', u, 'Interval', i,
-                      'generating when it is not committed')
-                errors_count += 1
-
-    return errors_count
-
-
 def check_power_gt_min_stable_gen(sets, data, results):
     errors_count = 0
 
@@ -20,10 +7,11 @@ def check_power_gt_min_stable_gen(sets, data, results):
             * data.units['MinGen'][u]
 
         for i in sets['intervals'].indices:
-            if results['num_commited'][u][i] > 0:
-                if results['power_generated'][u][i] < results['num_commited'][u][i] * mingen_MW:
-                    print('Sanity Check: Unit', u, 'Interval', i, 'generating below its min stable gen')
-                    errors_count += 1
+            for s in sets['scenarios'].indices:
+                if results['num_commited'][u][i] > 0:
+                    if results['power_generated'][(s, u)][i] < results['num_commited'][u][i] * mingen_MW:
+                        print('Sanity Check: Unit', u, 'Interval', i, 'generating below its min stable gen')
+                        errors_count += 1
 
     return errors_count
 
@@ -34,9 +22,10 @@ def check_power_lt_committed_capacity(sets, data, results):
     for u in sets['units_commit'].indices:
         unit_capacity = data.units['Capacity_MW'][u]
         for i in sets['intervals'].indices:
-            if results['power_generated'][u][i] > results['num_commited'][u][i] * unit_capacity:
-                print('Sanity Check: Unit', u, 'Interval', i, 'generating above its capacity')
-                errors_count += 1
+            for s in sets['scenarios'].indices:
+                if results['power_generated'][(s, u)][i] > results['num_commited'][u][i] * unit_capacity:
+                    print('Sanity Check: Unit', u, 'Interval', i, 'generating above its capacity')
+                    errors_count += 1
 
     return errors_count
 
@@ -48,11 +37,12 @@ def check_power_lt_capacity(sets, data, results):
         total_capacity = data.units['Capacity_MW'][u] * data.units['NoUnits'][u]
 
         for i in sets['intervals'].indices:
-            if results['power_generated'][u][i] > total_capacity:
-                print('Sanity Check: Unit', u, 'Interval', i,
-                      'generating above its capacity', '(%f > %f)' %
-                      (round(results['power_generated'][u][i]), round(total_capacity)))
-                errors_count += 1
+            for s in sets['scenarios'].indices:
+                if results['power_generated'][(s, u)][i] > total_capacity:
+                    print('Sanity Check: Unit', u, 'Interval', i,
+                          'generating above its capacity', '(%f > %f)' %
+                          (round(results['power_generated'][u][i]), round(total_capacity)))
+                    errors_count += 1
 
     return errors_count
 
@@ -62,11 +52,12 @@ def check_energy_charged_lt_charge_capacity(sets, data, results):
 
     for u in list(sets['units_storage'].indices):
         charge_capacity = data.units['Capacity_MW'][u] / data.units['RTEfficiency'][u]
-        for i in sets['intervals'].indices:
-            if results['charge_after_losses'][u][i] > charge_capacity:
-                print('Sanity Check: Unit', u, 'Interval', i,
-                      'charging above its charge capacity')
-                errors_count += 1
+        for s in sets['scenarios'].indices:
+            for i in sets['intervals'].indices:
+                if results['charge_after_losses'][(s, u)][i] > charge_capacity:
+                    print('Sanity Check: Unit', u, 'Interval', i,
+                          'charging above its charge capacity')
+                    errors_count += 1
 
     return errors_count
 
@@ -152,33 +143,34 @@ def check_storage_continiuity(sets, data, results):
     errors_count = 0
 
     for u in list(sets['units_storage'].indices):
-        for i in sets['intervals'].indices:
-            if i == min(sets['intervals'].indices):
-                initial_energy_in_storage_MWh \
-                    = (data.initial_state['StorageLevel_frac'][u]
-                       * data.units['StorageCap_h'][u]
-                       * data.units['Capacity_MW'][u])
-                net_flow = \
-                    (
-                     initial_energy_in_storage_MWh
-                     - results['energy_in_reservoir'][u][i]
-                     + results['charge_after_losses'][u][i] / 2
-                     - results['power_generated'][u][i] / 2
-                    )
+        for s in sets['scenarios'].indices:
+            for i in sets['intervals'].indices:
+                if i == min(sets['intervals'].indices):
+                    initial_energy_in_storage_MWh \
+                        = (data.initial_state['StorageLevel_frac'][u]
+                           * data.units['StorageCap_h'][u]
+                           * data.units['Capacity_MW'][u])
+                    net_flow = \
+                        (
+                         initial_energy_in_storage_MWh
+                         - results['energy_in_reservoir'][(s, u)][i]
+                         + results['charge_after_losses'][(s, u)][i] / 2
+                         - results['power_generated'][(s, u)][i] / 2
+                        )
 
-            if i > min(sets['intervals'].indices):
-                net_flow = \
-                    (
-                     results['energy_in_reservoir'][u][i-1]
-                     - results['energy_in_reservoir'][u][i]
-                     + results['charge_after_losses'][u][i] / 2
-                     - results['power_generated'][u][i] / 2
-                    )
+                if i > min(sets['intervals'].indices):
+                    net_flow = \
+                        (
+                         results['energy_in_reservoir'][(s, u)][i-1]
+                         - results['energy_in_reservoir'][(s, u)][i]
+                         + results['charge_after_losses'][(s, u)][i] / 2
+                         - results['power_generated'][(s, u)][i] / 2
+                        )
 
-            if net_flow != 0:
-                print('Sanity Check: Unit', u, 'Interval', i,
-                      'net storage flow is not zero')
-                errors_count += 1
+                if net_flow != 0:
+                    print('Sanity Check: Unit', u, 'Interval', i,
+                          'net storage flow is not zero')
+                    errors_count += 1
 
     return errors_count
 
@@ -188,11 +180,12 @@ def check_stored_energy_lt_storage_capacity(sets, data, results):
 
     for u in list(sets['units_storage'].indices):
         storage_capacity_MWh = data.units['StorageCap_h'][u] * data.units['Capacity_MW'][u]
-        for i in sets['intervals'].indices:
-            if results['energy_in_reservoir'][u][i] > storage_capacity_MWh:
-                print('Sanity Check: Unit', u, 'Interval', i,
-                      'stored energy exceeds storage capacity')
-                errors_count += 1
+        for s in sets['scenarios'].indices:
+            for i in sets['intervals'].indices:
+                if results['energy_in_reservoir'][(s, u)][i] > storage_capacity_MWh:
+                    print('Sanity Check: Unit', u, 'Interval', i,
+                          'stored energy exceeds storage capacity')
+                    errors_count += 1
     return errors_count
 
 

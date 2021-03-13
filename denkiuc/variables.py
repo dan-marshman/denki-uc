@@ -56,6 +56,7 @@ class dkVariable():
                 indices_permut_list = temp_list
 
         return indices_permut_list
+
     def make_pulp_variable(self, sets_indices):
         var = pp.LpVariable.dicts(self.name,
                                   (ind for ind in sets_indices),
@@ -87,12 +88,13 @@ class dkVariable():
         
         if num_indexes == 3:
             iterables = [sets_order[1].indices, sets_order[2].indices]
-            df_cols = pd.MultiIndex.from_product(iterables)
+            df_cols = pd.MultiIndex.from_product(iterables, names=[sets_order[1].name, sets_order[2].name])
             self.result_df = pd.DataFrame(index=sets_order[0].indices, columns = df_cols)
+            self.result_df.index.name = sets_order[0].name
             for x0 in sets_order[0].indices:
                 for x1 in sets_order[1].indices:
                     for x2 in sets_order[2].indices:
-                        self.result_df.loc[x0, (x1, x0)] = self.var[(x0, x1, x2)].value()
+                        self.result_df.loc[x0, (x1, x2)] = self.var[(x0, x1, x2)].value()
 
         self.result_df.index.name = sets_order[0].name
         self.result_df = self.result_df.astype(float)

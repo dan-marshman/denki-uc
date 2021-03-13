@@ -22,8 +22,11 @@ def add_custom_results(data, results, results_path):
 
 def add_charge_losses(data, results):
     charge_losses = results['charge_after_losses'].copy()
+
     for col in charge_losses.columns.to_list():
-        charge_losses[col] = charge_losses[col] / (data.units['RTEfficiency'][col]) * (1 - data.units['RTEfficiency'][col])
+        u = col[1]
+        charge_losses[col] = charge_losses[col] / (data.units['RTEfficiency'][u]) * (1 - data.units['RTEfficiency'][u])
+
     return charge_losses
 
 
@@ -35,20 +38,23 @@ def add_total_charge_load(results, new_results):
 def add_dispatch_result(data, results, new_results):
     dispatch = results['power_generated'].copy()
 
-    demand_df = -1 * data.traces['demand'].copy()
-    demand_df = demand_df.rename(columns={r: r+' demand' for r in demand_df.columns.to_list()})
-    dispatch = dispatch.join(demand_df)
-
     charge_df = -1 * results['charge_after_losses'].copy()
-    charge_df = charge_df.rename(columns={r: r+' charge after losses' for r in charge_df.columns.to_list()})
+    charge_df.columns = \
+        charge_df.columns.set_levels([col[1]+' charged' for col in charge_df.columns.to_list()], level=1)
     dispatch = dispatch.join(charge_df)
 
-    charge_losses_df = -1 * new_results['charge_losses'].copy()
-    charge_losses_df = charge_losses_df.rename(columns={r: r+' charge losses' for r in charge_losses_df.columns.to_list()})
-    dispatch = dispatch.join(charge_losses_df)
+    losses_df = -1 * new_results['charge_losses'].copy()
+    losses_df.columns = \
+        losses_df.columns.set_levels([col[1]+' losses' for col in losses_df.columns.to_list()], level=1)
+    dispatch = dispatch.join(losses_df)
+
+    demand_df = -1 * data.traces['demand'].copy()
+    # demand_df.columns = \
+        # demand_df.columns.set_levels([col[1]+' demand' for col in demand_df.columns.to_list()], level=1)
+    dispatch = dispatch.join(demand_df)
 
     unserved_df = results['unserved_power'].copy()
-    # unserved_df = unserved_df.rename(columns={r: r+' unserved power' for r in unserved_df.columns.to_list()})
+    unserved_df.columns = pd.MultiIndex.from_product([unserved_df.columns, ['Unserved power']])
     dispatch = dispatch.join(unserved_df)
 
     return dispatch
