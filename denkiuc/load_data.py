@@ -194,6 +194,32 @@ class Data:
     def add_arma_scenarios(self, scenarios, random_seed):
         import numpy as np
 
+        def fill_arma_vals_for_scenario_and_intervals(scenarios, new_trace, orig_df):
+            for scenario in scenarios.indices[1:]:
+                new_trace.loc[:, (scenario, region)] = orig_df[region]
+
+                forecast_error = [0] * len(new_trace)
+
+                distribution = np.random.normal(0, arma_sigma, len(new_trace))
+
+                for i in new_trace.index.to_list()[1:]:
+                    forecast_error[i] = \
+                        arma_alpha * forecast_error[i-1] + distribution[i] + distribution[i-1] * arma_beta
+                    if trace_name == 'demand':
+                        new_trace.loc[i, (scenario, region)] = \
+                            (1 + forecast_error[i]) * new_trace.loc[i, (0, region)]
+                    elif trace_name in ['wind', 'solarPV']:
+                        new_trace.loc[i, (scenario, region)] = \
+                            forecast_error[i] + new_trace.loc[i, (0, region)]
+            return new_trace
+
+        def enforce_limits(new_trace, trace_name):
+            if trace_name in ['wind', 'solarPV']:
+                new_trace = new_trace.clip(lower=0, upper=1)
+            if trace_name in ['demand',]:
+                new_trace = new_trace.clip(lower=0)
+            return new_trace
+
         np.random.seed(random_seed)
 
         self.traces = dict()
@@ -215,22 +241,8 @@ class Data:
 
             for region in orig_df.columns:
                 new_trace.loc[:, (0, region)] = orig_df[region]
-                for scenario in scenarios.indices[1:]:
-                    new_trace.loc[:, (scenario, region)] = orig_df[region]
-
-                    forecast_error = [0] * len(new_trace)
-
-                    distribution = np.random.normal(0, arma_sigma, len(new_trace))
-
-                    for i in new_trace.index.to_list()[1:]:
-                        forecast_error[i] = \
-                            arma_alpha * forecast_error[i-1] + distribution[i] + distribution[i-1] * arma_beta
-                        if trace_name == 'demand':
-                            new_trace.loc[i, (scenario, region)] = \
-                                (1 + forecast_error[i]) * new_trace.loc[i, (0, region)]
-                        else:
-                            new_trace.loc[i, (scenario, region)] = \
-                                min(1, max(0, forecast_error[i] + new_trace.loc[i, (0, region)]))
+                new_trace = fill_arma_vals_for_scenario_and_intervals(scenarios, new_trace, orig_df)
+                new_trace = enforce_limits(new_trace, trace_name)
             new_trace.round(5)
             
             self.traces[trace_name] = new_trace

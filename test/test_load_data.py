@@ -48,8 +48,7 @@ class load_dataTests(unittest.TestCase):
         test_model = uc.ucModel('test1', test1_path)
         scenarios = test_model.sets['scenarios']
         scenarios.indices = list(range(5))
-        random_seed = 12
-        test_model.data.add_arma_scenarios(scenarios, random_seed)
+        test_model.data.add_arma_scenarios(scenarios, random_seed=12)
         result = \
             (
              round(test_model.data.traces['demand'][(3, 'Demand')][12], 3),
@@ -58,6 +57,42 @@ class load_dataTests(unittest.TestCase):
             )
         self.assertEqual(result, (2393.924, 0.442, 0))
 
+    def test_negative_wind_trace(self):
+        test_model = uc.ucModel('test1', test1_path)
+        scenarios = test_model.sets['scenarios']
+        scenarios.indices = list(range(2))
+
+        test_model.data.orig_traces['demand']['Demand'][12] = -5000
+        test_model.data.orig_traces['wind']['Wind'][12] = -5000
+        test_model.data.orig_traces['solarPV']['Solar'][12] = -5000
+
+        test_model.data.add_arma_scenarios(scenarios, random_seed = 5)
+
+        result = (
+                  test_model.data.traces['demand'][(1, 'Demand')][12],
+                  test_model.data.traces['wind'][(1, 'Wind')][12],
+                  test_model.data.traces['solarPV'][(1, 'Solar')][12]
+                )
+
+        self.assertEqual(result, (0, 0, 0))
+
+    def test_negative_wind_trace(self):
+        test_model = uc.ucModel('test1', test1_path)
+        scenarios = test_model.sets['scenarios']
+        scenarios.indices = list(range(2))
+
+        test_model.data.orig_traces['wind']['Wind'][12] = 5000
+        test_model.data.orig_traces['solarPV']['Solar'][12] = 5000
+        test_model.data.orig_traces['demand']['Demand'][12] = 5000
+
+        test_model.data.add_arma_scenarios(scenarios, random_seed = 5)
+
+        result = (
+                  round(test_model.data.traces['demand'][(1, 'Demand')][12]),
+                  test_model.data.traces['wind'][(1, 'Wind')][12],
+                  test_model.data.traces['solarPV'][(1, 'Solar')][12]
+                )
+        self.assertEqual(result, (4821, 1, 1))
 
 class settingsTests(unittest.TestCase):
     def test_settings_loaded(self):
