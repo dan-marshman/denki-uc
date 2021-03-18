@@ -10,7 +10,7 @@ def add_custom_results(data, results, results_path):
     new_results['dispatch'] = add_dispatch_result(data, results, new_results)
 
     for name, result in new_results.items():
-        result = result.round(3)
+        # result = result.round(3)
         filename = name + '.csv'
         write_path = os.path.join(results_path, filename)
         result.to_csv(write_path)
@@ -37,21 +37,20 @@ def add_total_charge_load(results, new_results):
 
 def add_dispatch_result(data, results, new_results):
     dispatch = results['power_generated'].copy()
+    dispatch = \
+        pd.concat([dispatch], axis=1, keys=['generated']).swaplevel(0, 2, axis=1).swaplevel(0, 1, axis=1)
 
     charge_df = -1 * results['charge_after_losses'].copy()
-    charge_df.columns = \
-        charge_df.columns.set_levels([col[1]+' charged' for col in charge_df.columns.to_list()], level=1)
+    charge_df = \
+        pd.concat([charge_df], axis=1, keys=['charged']).swaplevel(0, 2, axis=1).swaplevel(0, 1, axis=1)
     dispatch = dispatch.join(charge_df)
 
     losses_df = -1 * new_results['charge_losses'].copy()
-    losses_df.columns = \
-        losses_df.columns.set_levels([col[1]+' losses' for col in losses_df.columns.to_list()], level=1)
+    losses_df = \
+        pd.concat([losses_df], axis=1, keys=['losses']).swaplevel(0, 2, axis=1).swaplevel(0, 1, axis=1)
     dispatch = dispatch.join(losses_df)
 
-    demand_df = -1 * data.traces['demand'].copy()
-    # demand_df.columns = \
-        # demand_df.columns.set_levels([col[1]+' demand' for col in demand_df.columns.to_list()], level=1)
-    dispatch = dispatch.join(demand_df)
+    dispatch = dispatch.join(-1 * data.traces['demand'])
 
     unserved_df = results['unserved_power'].copy()
     unserved_df.columns = pd.MultiIndex.from_product([unserved_df.columns, ['Unserved power']])

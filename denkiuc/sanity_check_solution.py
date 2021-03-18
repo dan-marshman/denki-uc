@@ -65,13 +65,19 @@ def check_energy_charged_lt_charge_capacity(sets, data, results):
 def total_gen_equals_demand(sets, results):
     errors_count = 0
 
-    dispatch_sum = results['dispatch'].sum(axis=1).round(4)
+    
+    dispatch = results['dispatch']
+    df_cols = dispatch.columns.to_list()
 
-    if dispatch_sum.sum() != 0:
-        dispatch_sum = dispatch_sum[dispatch_sum[:] != 0]
-        print('Sanity check: Supply does not equal demand in intervals',
-              dispatch_sum)
-        errors_count += len(dispatch_sum.index.to_list())
+    for s in sets['scenarios'].indices:
+        filtered_cols = [c for c in df_cols if c[0]==s]
+        dispatch_sum = dispatch[filtered_cols].sum(axis=1).round(4)
+
+        if dispatch_sum.sum() != 0:
+            dispatch_sum = dispatch_sum[dispatch_sum[:] != 0]
+            print('Sanity check: Supply does not equal demand in intervals',
+                  dispatch_sum)
+            errors_count += len(dispatch_sum.index.to_list())
 
     return errors_count
 
@@ -145,11 +151,13 @@ def check_storage_continiuity(sets, data, results):
     for u in list(sets['units_storage'].indices):
         for s in sets['scenarios'].indices:
             for i in sets['intervals'].indices:
+
                 if i == min(sets['intervals'].indices):
                     initial_energy_in_storage_MWh \
                         = (data.initial_state['StorageLevel_frac'][u]
                            * data.units['StorageCap_h'][u]
                            * data.units['Capacity_MW'][u])
+
                     net_flow = \
                         (
                          initial_energy_in_storage_MWh
@@ -167,9 +175,9 @@ def check_storage_continiuity(sets, data, results):
                          - results['power_generated'][(s, u)][i] / 2
                         )
 
-                if net_flow != 0:
+                if net_flow.round(4) != 0:
                     print('Sanity Check: Unit', u, 'Interval', i,
-                          'net storage flow is not zero')
+                          'net storage flow is not zero:', net_flow)
                     errors_count += 1
 
     return errors_count

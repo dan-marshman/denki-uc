@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import logging
 
+
 def load_settings(path_to_inputs):
     import csv
 
@@ -11,23 +12,23 @@ def load_settings(path_to_inputs):
     with open(settings_path) as f:
         settings_data = csv.DictReader(f)
         for row in settings_data:
-            settings.setdefault(row['Parameter'], row['Value'])
+            if row['Type'] == 'int':
+                settings.setdefault(row['Parameter'], int(row['Value']))
+
+            if row['Type'] == 'bool':
+                settings.setdefault(row['Parameter'], bool(row['Value']))
+
+            if row['Type'] == 'str':
+                settings.setdefault(row['Parameter'], str(row['Value']))
+
+            if row['Type'] == 'float':
+                settings.setdefault(row['Parameter'], float(row['Value']))
     
-    settings['INTERVALS_PER_HOUR'] = int(settings['INTERVALS_PER_HOUR'])
-    settings['UNS_LOAD_PNTY'] = int(settings['UNS_LOAD_PNTY'])
-    settings['UNS_RESERVE_PNTY'] = int(settings['UNS_RESERVE_PNTY'])
-    settings['UNS_INERTIA_PNTY'] = int(settings['UNS_INERTIA_PNTY'])
-    settings['LOOK_AHEAD_INTS'] = int(settings['LOOK_AHEAD_INTS'])
-    settings['NUM_SCENARIOS'] = int(settings['NUM_SCENARIOS'])
-    settings['RANDOM_SEED'] = int(settings['RANDOM_SEED'])
-
-    settings['WRITE_RESULTS_WITH_LOOK_AHEAD'] = bool(settings['WRITE_RESULTS_WITH_LOOK_AHEAD'])
-    settings['WRITE_RESULTS_WITHOUT_LOOK_AHEAD'] = bool(settings['WRITE_RESULTS_WITHOUT_LOOK_AHEAD'])
-
     if 'OUTPUTS_PATH' not in settings.keys():
         settings['OUTPUTS_PATH'] = os.path.join(os.getcwd(), 'denki-outputs')
 
     return settings
+
 
 class dkSet():
     def __init__(self, name, indices, master_set=None):
