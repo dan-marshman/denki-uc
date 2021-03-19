@@ -25,10 +25,8 @@ def add_charge_losses(data, results):
 
     for col in charge_losses.columns.to_list():
         u = col[1]
-        charge_losses[col] = \
-            (charge_losses[col]
-             / (data.units['RTEfficiency'][u] * (1 - data.units['RTEfficiency'][u]))
-             )
+        charge_losses[col] = charge_losses[col] / data.units['RTEfficiency'][u] \
+            * (1 - data.units['RTEfficiency'][u])
 
     return charge_losses
 

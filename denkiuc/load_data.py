@@ -38,7 +38,7 @@ class dkSet():
         if master_set is not None:
             self.validate_set(master_set)
             master_set.append_subset(self)
-        elif master_set is not None:
+        elif master_set is None:
             self.subsets = list()
 
     def validate_set(self, master_set):
@@ -166,13 +166,15 @@ class Data:
                 self.initial_state.loc[u, 'NumCommited'] = int(commit_val)
 
             if commit_val > units_built_val:
-                logging.error("Initial state had more units committed (%f) for unit" % commit_val,
-                              " %s than exist (%d). Changed to %d." % (u, units_built_val, units_built_val))
+                logging.error('Initial state had more units committed (%f) for unit' % commit_val,
+                              ' %s than exist (%d).' % (u, units_built_val),
+                              ' Changed to %d.' % units_built_val)
                 self.initial_state.loc[u, 'NumCommited'] = units_built_val
 
             if commit_val < 0:
-                logging.error("initial state had commit value of %f for unit %s." % (commit_val, u),
-                    "Changed to 0")
+                logging.error('initial state had commit value of',
+                              '%f for unit %s.' % (commit_val, u),
+                              'Changed to 0.')
                 self.initial_state.loc[u, 'NumCommited'] = 0
 
             initial_power_MW = self.initial_state['PowerGeneration_MW'][u]
