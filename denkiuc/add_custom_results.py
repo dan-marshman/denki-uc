@@ -25,8 +25,8 @@ def add_charge_losses(data, results):
 
     for col in charge_losses.columns.to_list():
         u = col[1]
-        charge_losses[col] = charge_losses[col] / data.units['RTEfficiency'][u] \
-            * (1 - data.units['RTEfficiency'][u])
+        rt_eff = data.units['RTEfficiency'][u]
+        charge_losses[col] = charge_losses[col] * (1 - rt_eff) / rt_eff
 
     return charge_losses
 
@@ -37,27 +37,24 @@ def add_total_charge_load(results, new_results):
 
 
 def add_dispatch_result(data, results, new_results):
+
+    def add_level_and_join(dispatch, new_df, category):
+        new_df = pd.concat([new_df], axis=1, keys=[category])
+        new_df = new_df.swaplevel(0, 2, axis=1).swaplevel(0, 1, axis=1)
+        dispatch = dispatch.join(new_df)
+
+        return dispatch
+
     dispatch = results['power_generated'].copy()
-    dispatch = \
-        pd.concat([dispatch], axis=1, keys=['generated'])
+    dispatch = pd.concat([dispatch], axis=1, keys=['generation'])
     dispatch = dispatch.swaplevel(0, 2, axis=1).swaplevel(0, 1, axis=1)
 
-    charge_df = -1 * results['charge_after_losses'].copy()
-    charge_df = \
-        pd.concat([charge_df], axis=1, keys=['charged'])
-    charge_df = charge_df.swaplevel(0, 2, axis=1).swaplevel(0, 1, axis=1)
-    dispatch = dispatch.join(charge_df)
-
-    losses_df = -1 * new_results['charge_losses'].copy()
-    losses_df = \
-        pd.concat([losses_df], axis=1, keys=['losses'])
-    losses_df = losses_df.swaplevel(0, 2, axis=1).swaplevel(0, 1, axis=1)
-    dispatch = dispatch.join(losses_df)
-
-    dispatch = dispatch.join(-1 * data.traces['demand'])
+    dispatch = add_level_and_join(dispatch, -1 * results['charge_after_losses'], 'charge')
+    dispatch = add_level_and_join(dispatch, -1 * new_results['charge_losses'], 'losses')
+    dispatch = add_level_and_join(dispatch, -1 * data.traces['demand'], 'demand')
 
     unserved_df = results['unserved_power'].copy()
-    unserved_df.columns = pd.MultiIndex.from_product([unserved_df.columns, ['Unserved power']])
-    dispatch = dispatch.join(unserved_df)
+    unserved_df.columns = pd.MultiIndex.from_product([unserved_df.columns, ['Demand']])
+    dispatch = add_level_and_join(dispatch, unserved_df, 'unserved')
 
     return dispatch
