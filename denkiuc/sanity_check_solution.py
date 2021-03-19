@@ -84,46 +84,56 @@ def total_gen_equals_demand(sets, results):
     return errors_count
 
 
-def minimum_up_time_is_respected(sets, data, results):
+def minimum_up_time_is_respected(sets, data, results, settings):
     errors_count = 0
 
-    for u in commit.columns.to_list():
-        min_up_time = unit_data['MinUpTime_h'][u]
+    for u in sets['units_commit'].indices:
+        minimum_up_time = data.units['MinUpTime_h'][u]
         time_on = 0
-        prev_commit = 0
-        for i in commit.index.to_list():
-            current_commit_status = commit[u][i]
+        prev_commit_status = 0
+
+        for i in sets['intervals'].indices:
+            current_commit_status = results['num_commited'].loc[i, u]
+
             if current_commit_status == 1:
-                time_on = time_on + 1
+                time_on += 1
+
             if current_commit_status == 0:
-                if prev_commit == 1:
-                    if time_on < min_up_time:
+                if prev_commit_status == 1:
+                    if time_on < minimum_up_time * settings['INTERVALS_PER_HOUR']:
                         print("Min up time error for unit", u, "interval", i)
                         errors_count = errors_count + 1
+
                 time_on = 0
-            prev_commit = current_commit_status
+
+            prev_commit_status = current_commit_status
 
     return errors_count
 
 
-def minimum_down_time_is_respected(sets, data, results):
+def minimum_down_time_is_respected(sets, data, results, settings):
     errors_count = 0
 
-    for u in commit.columns.to_list():
-        min_up_time = unit_data['MinDownTime_h'][u]
+    for u in sets['units_commit'].indices:
+        minimum_down_time = data.units['MinDownTime_h'][u]
         time_off = 0
-        prev_commit = 1
-        for i in commit.index.to_list():
-            current_commit_status = commit[u][i]
+        prev_commit_status = 1
+
+        for i in sets['intervals'].indices:
+            current_commit_status = results['num_commited'].loc[i, u]
+
             if current_commit_status == 0:
-                time_off = time_off + 1
+                time_off += 1
+
             if current_commit_status == 1:
-                if prev_commit == 0:
-                    if time_off < min_up_time:
-                        print("Min up time error for unit", u, "interval", i)
+                if prev_commit_status == 0:
+                    if time_off < minimum_down_time * settings['INTERVALS_PER_HOUR']:
+                        print("Min down time error for unit", u, "interval", i)
                         errors_count = errors_count + 1
+
                 time_off = 0
-            prev_commit = current_commit_status
+
+            prev_commit_status = current_commit_status
 
     return errors_count
 
@@ -199,7 +209,7 @@ def check_stored_energy_lt_storage_capacity(sets, data, results):
     return errors_count
 
 
-def run_sanity_checks(sets, data, results):
+def run_sanity_checks(sets, data, results, settings):
     check_power_lt_capacity(sets, data, results)
     check_power_lt_committed_capacity(sets, data, results)
     check_power_gt_min_stable_gen(sets, data, results)
@@ -207,3 +217,5 @@ def run_sanity_checks(sets, data, results):
     check_energy_charged_lt_charge_capacity(sets, data, results)
     check_storage_continiuity(sets, data, results)
     check_stored_energy_lt_storage_capacity(sets, data, results)
+    minimum_up_time_is_respected(sets, data, results, settings)
+    minimum_down_time_is_respected(sets, data, results, settings)

@@ -4,7 +4,6 @@ import pulp as pp
 def supply_eq_demand(sets, data, vars, mod):
     for i in sets['intervals'].indices:
         for s in sets['scenarios'].indices:
-
             label = 'meet_demand_i_%d_s_%d' % (i, s)
 
             condition = \
@@ -152,6 +151,51 @@ def power_lt_capacity(sets, data, vars, mod):
     return mod
 
 
+def minimum_up_time(sets, data, vars, mod, settings):
+    i0 = min(sets['intervals'].indices)
+
+    for i in sets['intervals'].indices:
+        i_high = i + 1
+
+        for u in sets['units_commit'].indices:
+            unit_up_time = data.units['MinUpTime_h'][u]
+            i_low = 1 + max(i0 - 1, i - settings['INTERVALS_PER_HOUR'] * unit_up_time)
+            label = 'minimum_up_time_i_%d_u_%s' % (i, u)
+            condition = (
+                vars['num_commited'].var[(i, u)]
+                >=
+                pp.lpSum([vars['num_starting_up'].var[(i2, u)] for i2 in range(i_low, i_high)])
+                )
+
+            mod += condition, label
+
+    return mod
+
+
+def minimum_down_time(sets, data, vars, mod, settings):
+    i0 = min(sets['intervals'].indices)
+
+    for i in sets['intervals'].indices:
+        i_high = i + 1
+
+        for u in sets['units_commit'].indices:
+            unit_down_time = data.units['MinDownTime_h'][u]
+            if i - i0  <= unit_down_time:
+                pass
+
+            i_low = 1 + max(i0 - 1, i - settings['INTERVALS_PER_HOUR'] * unit_down_time)
+            label = 'minimum_down_time_i_%d_u_%s' % (i, u)
+            condition = (
+                data.units['NoUnits'][u] - vars['num_commited'].var[(i, u)]
+                >=
+                pp.lpSum([vars['num_shutting_down'].var[(i2, u)] for i2 in range(i_low, i_high)])
+                )
+
+            mod += condition, label
+
+    return mod
+
+
 def energy_storage_continuity(sets, data, vars, mod, settings):
     for i in sets['intervals'].indices:
         if i > min(sets['intervals'].indices):
@@ -220,6 +264,7 @@ def max_charge(sets, data, vars, mod):
                      data.units['RTEfficiency'][u]
                      * data.units['Capacity_MW'][u])
                 mod += condition, label
+
     return mod
 
 
@@ -232,7 +277,6 @@ def create_constraints_df(path_to_inputs):
 
 
 def add_all_constraints_to_dataframe(sets, data, vars, settings, mod, constraints_df):
-
     if constraints_df['Include']['supply_eq_demand'] == 1:
         mod = supply_eq_demand(sets, data, vars, mod)
 
@@ -253,6 +297,12 @@ def add_all_constraints_to_dataframe(sets, data, vars, settings, mod, constraint
 
     if constraints_df['Include']['power_gt_min_stable_gen'] == 1:
         mod = power_gt_min_stable_gen(sets, data, vars, mod)
+
+    if constraints_df['Include']['minimum_up_time'] == 1:
+        mod = minimum_up_time(sets, data, vars, mod, settings)
+
+    if constraints_df['Include']['minimum_down_time'] == 1:
+        mod = minimum_down_time(sets, data, vars, mod, settings)
 
     if constraints_df['Include']['energy_storage_continuity'] == 1:
         mod = energy_storage_continuity(sets, data, vars, mod, settings)

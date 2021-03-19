@@ -106,7 +106,7 @@ class ucModel():
     def sanity_check_solution(self):
         import denkiuc.sanity_check_solution as scs
 
-        scs.run_sanity_checks(self.sets, self.data, self.results)
+        scs.run_sanity_checks(self.sets, self.data, self.results, self.settings)
 
 
 path_to_denki = os.path.dirname(os.path.abspath(__file__))
