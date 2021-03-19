@@ -2,15 +2,12 @@ import denkiuc.load_data as ld
 import denkiuc.misc_functions as mf
 import denkiuc.variables as va
 import os
-import pandas as pd
 import pulp as pp
 import sys
 
 
 class ucModel():
     def __init__(self, name, path_to_inputs):
-        import shutil
-
         print()
         print("-------------------------------------------------------------------------")
         print()
@@ -19,7 +16,7 @@ class ucModel():
         self.path_to_inputs = path_to_inputs
         print("Initiating UC model called", self.name)
         print("Using database folder located at   ", path_to_inputs)
-    
+
         if not os.path.exists(self.path_to_inputs):
             print("Inputs path does not exist. Exiting")
             return
@@ -60,7 +57,12 @@ class ucModel():
         self.mod += obj.obj_fn(self.sets, self.data, self.vars, self.settings)
 
         self.constraints_df = cnsts.create_constraints_df(self.path_to_inputs)
-        self.mod = cnsts.add_all_constraints_to_dataframe(self.sets, self.data, self.vars, self.settings, self.mod, self.constraints_df)
+        self.mod = cnsts.add_all_constraints_to_dataframe(self.sets,
+                                                          self.data,
+                                                          self.vars,
+                                                          self.settings,
+                                                          self.mod,
+                                                          self.constraints_df)
 
     def solve_model(self):
         def exit_if_infeasible(status):
@@ -69,9 +71,9 @@ class ucModel():
 
         print('Begin solving the model')
         self.mod.solve(pp.PULP_CBC_CMD(timeLimit=120,
-                                  threads=0,
-                                  msg=0,
-                                  gapRel=0))
+                                       threads=0,
+                                       msg=0,
+                                       gapRel=0))
 
         self.optimality_status = pp.LpStatus[self.mod.status]
         print('Model status: %s' % self.optimality_status)
@@ -81,7 +83,6 @@ class ucModel():
         print('Objective function = %f' % self.opt_obj_fn_value)
 
     def store_results(self):
-        import shutil
         import denkiuc.add_custom_results as acs
 
         path_to_results = os.path.join(self.path_to_outputs, 'results')
@@ -100,7 +101,7 @@ class ucModel():
             if self.settings['WRITE_RESULTS_WITHOUT_LOOK_AHEAD']:
                 dkvar.write_to_file(path_to_results, removed_la=True)
 
-        self.results = acs.add_custom_results(self.data, self.results, path_to_results) 
+        self.results = acs.add_custom_results(self.data, self.results, path_to_results)
 
     def sanity_check_solution(self):
         import denkiuc.sanity_check_solution as scs

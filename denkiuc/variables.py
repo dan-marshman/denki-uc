@@ -2,27 +2,34 @@ import pulp as pp
 
 
 def make_all_variables(sets):
-    vars = dict()    
+    vars = dict()
 
     intervals_units = [sets['intervals'], sets['scenarios'], sets['units']]
     vars['power_generated'] = dkVariable('power_generated', 'MW', intervals_units)
     vars['reserve_enablement'] = dkVariable('reserve_enablement', 'MW', intervals_units)
-    
+
     intervals_units_commit = [sets['intervals'], sets['units_commit']]
-    vars['num_commited'] = dkVariable('num_commited', 'NumUnits', intervals_units_commit, 'Integer')
-    vars['inertia_provided'] = dkVariable('inertia_provided', 'MW.s', intervals_units_commit)
-    vars['num_shutting_down'] = dkVariable('num_shutting_down', 'NumUnits', intervals_units_commit, 'Integer')
-    vars['num_starting_up'] = dkVariable('num_starting_up', 'NumUnits', intervals_units_commit, 'Integer')
-    
+    vars['num_commited'] = \
+        dkVariable('num_commited', 'NumUnits', intervals_units_commit, 'Integer')
+    vars['inertia_provided'] = \
+        dkVariable('inertia_provided', 'MW.s', intervals_units_commit)
+    vars['num_shutting_down'] = \
+        dkVariable('num_shutting_down', 'NumUnits', intervals_units_commit, 'Integer')
+    vars['num_starting_up'] = \
+        dkVariable('num_starting_up', 'NumUnits', intervals_units_commit, 'Integer')
+
     intervals_units_storage = [sets['intervals'], sets['scenarios'], sets['units_storage']]
     vars['charge_after_losses'] = dkVariable('charge_after_losses', 'MW', intervals_units_storage)
     vars['energy_in_reservoir'] = dkVariable('energy_in_reservoir', 'MWh', intervals_units_storage)
-    
+
     vars['unserved_inertia'] = dkVariable('unserved_inertia', 'MW.s', [sets['intervals']])
-    vars['unserved_power'] = dkVariable('unserved_power', 'MW', [sets['intervals'], sets['scenarios']])
-    vars['unserved_reserve'] = dkVariable('unserved_reserve', 'MW', [sets['intervals'], sets['scenarios']])
-    
+    vars['unserved_power'] = \
+        dkVariable('unserved_power', 'MW', [sets['intervals'], sets['scenarios']])
+    vars['unserved_reserve'] = \
+        dkVariable('unserved_reserve', 'MW', [sets['intervals'], sets['scenarios']])
+
     return vars
+
 
 class dkVariable():
     def __init__(self, name, units, sets, var_type='Continuous'):
@@ -35,9 +42,9 @@ class dkVariable():
 
     def make_var_indices(self, sets):
         import itertools
-        
+
         list_of_set_indices = [x.indices for x in self.sets]
-        
+
         next_set = list_of_set_indices.pop(0)
         indices_permut = itertools.product(next_set)
         indices_permut_list = [x[0] for x in indices_permut]
@@ -68,28 +75,28 @@ class dkVariable():
         import pandas as pd
 
         num_indexes = len(self.sets)
-        
-        results = dict()
-        
+
         sets_order = dict()
         for n, set in enumerate(self.sets):
             sets_order[n] = set
 
         if num_indexes == 1:
             values = [self.var[i].value() for i in self.sets_indices]
-            self.result_df = pd.Series(data=values, index = self.sets_indices, name=self.name)
-            
+            self.result_df = pd.Series(data=values, index=self.sets_indices, name=self.name)
 
         if num_indexes == 2:
-            self.result_df = pd.DataFrame(index=sets_order[0].indices, columns=sets_order[1].indices)
+            self.result_df = \
+                pd.DataFrame(index=sets_order[0].indices, columns=sets_order[1].indices)
             for x0 in sets_order[0].indices:
                 for x1 in sets_order[1].indices:
                     self.result_df.loc[x0, x1] = self.var[(x0, x1)].value()
-        
+
         if num_indexes == 3:
             iterables = [sets_order[1].indices, sets_order[2].indices]
-            df_cols = pd.MultiIndex.from_product(iterables, names=[sets_order[1].name, sets_order[2].name])
-            self.result_df = pd.DataFrame(index=sets_order[0].indices, columns = df_cols)
+            df_cols = pd.MultiIndex.from_product(iterables,
+                                                 names=[sets_order[1].name, sets_order[2].name])
+
+            self.result_df = pd.DataFrame(index=sets_order[0].indices, columns=df_cols)
             self.result_df.index.name = sets_order[0].name
             for x0 in sets_order[0].indices:
                 for x1 in sets_order[1].indices:
@@ -110,7 +117,7 @@ class dkVariable():
 
     def write_to_file(self, write_dir, removed_la=False):
         import os
-        
+
         filename = self.name + '_' + self.units + '.csv'
 
         if not removed_la:

@@ -23,7 +23,7 @@ def load_settings(path_to_inputs):
 
             if row['Type'] == 'float':
                 settings.setdefault(row['Parameter'], float(row['Value']))
-    
+
     if 'OUTPUTS_PATH' not in settings.keys():
         settings['OUTPUTS_PATH'] = os.path.join(os.getcwd(), 'denki-outputs')
 
@@ -35,16 +35,17 @@ class dkSet():
         self.name = name
         self.indices = indices
 
-        if master_set != None:
+        if master_set is not None:
             self.validate_set(master_set)
             master_set.append_subset(self)
-        elif master_set == None:
+        elif master_set is not None:
             self.subsets = list()
 
     def validate_set(self, master_set):
         for ind in self.indices:
             if ind not in master_set.indices:
-                print("\nMember of set called %s (%s) is not a member of the master set %s\n" % (self.name, str(ind), master_set.name))
+                print('\nMember of set called %s (%s) is not a member' % (self.name, str(ind)),
+                      'of the master set %s\n' % master_set.name)
                 raise ValueError('Subset validation error')
 
     def append_subset(self, subset):
@@ -57,8 +58,7 @@ def load_master_sets(data, settings):
     sets['intervals'] = dkSet('intervals', data.orig_traces['demand'].index.to_list())
     sets['units'] = dkSet('units', data.units.index.to_list())
     sets['scenarios'] = dkSet('scenarios', list(range(settings['NUM_SCENARIOS'])))
-        
-       
+
     return sets
 
 
@@ -77,10 +77,12 @@ def load_unit_subsets(data, sets):
 def load_interval_subsets(settings, sets):
     last_main_interval = len(sets['intervals'].indices) - settings['LOOK_AHEAD_INTS'] - 1
 
-    main_intervals = [i for num, i in enumerate(sets['intervals'].indices) if num <= last_main_interval]
+    main_intervals = \
+        [i for num, i in enumerate(sets['intervals'].indices) if num <= last_main_interval]
     look_ahead_intervals = [i for i in sets['intervals'].indices if i not in main_intervals]
 
-    sets['look_ahead_intervals'] = dkSet('look_ahead_intervals', look_ahead_intervals, sets['intervals'])
+    sets['look_ahead_intervals'] = \
+        dkSet('look_ahead_intervals', look_ahead_intervals, sets['intervals'])
     sets['main_intervals'] = dkSet('main_intervals', main_intervals, sets['intervals'])
 
     return sets
@@ -88,9 +90,9 @@ def load_interval_subsets(settings, sets):
 
 def create_unit_subsets(subset, data, units):
     module_path = os.path.split(os.path.abspath(__file__))[0]
-    path_to_tech_categories_file = os.path.join(module_path, 'technology_categories.csv') 
+    path_to_tech_categories_file = os.path.join(module_path, 'technology_categories.csv')
     tech_categories_df = pd.read_csv(path_to_tech_categories_file, index_col=0)
-    
+
     subset_list = []
 
     for u in units.indices:
@@ -159,13 +161,13 @@ class Data:
             units_built_val = self.units['NoUnits'][u]
 
             if commit_val != int(commit_val):
-                logging.error("initial state had commit value of %f for unit %s." % (commit_val, u),
-                    "Changed to %d" % int(commit_val))
+                logging.error("Initial state had commit value of %f for unit %s" % (commit_val, u),
+                              " - changed to %d" % int(commit_val))
                 self.initial_state.loc[u, 'NumCommited'] = int(commit_val)
 
-            if commit_val > units_built_val: 
-                logging.error("initial state had more units committed (%f) for unit %s than exist" % (commit_val, u),
-                    "(%d). Changed to %d." % (units_built_val, units_built_val))
+            if commit_val > units_built_val:
+                logging.error("Initial state had more units committed (%f) for unit" % commit_val,
+                              " %s than exist (%d). Changed to %d." % (u, units_built_val, units_built_val))
                 self.initial_state.loc[u, 'NumCommited'] = units_built_val
 
             if commit_val < 0:
@@ -173,29 +175,30 @@ class Data:
                     "Changed to 0")
                 self.initial_state.loc[u, 'NumCommited'] = 0
 
-            initial_power_MW = self.initial_state['PowerGeneration_MW'][u] 
-            
+            initial_power_MW = self.initial_state['PowerGeneration_MW'][u]
+
             minimum_initial_power_MW = \
-                self.initial_state['NumCommited'][u] * self.units['MinGen'][u] * self.units['Capacity_MW'][u]
-            
+                self.initial_state['NumCommited'][u] \
+                * self.units['MinGen'][u] * self.units['Capacity_MW'][u]
+
             maximum_initial_power_MW = \
                 self.initial_state['NumCommited'][u] * self.units['Capacity_MW'][u]
 
-            if  initial_power_MW < minimum_initial_power_MW:
-                print('Unit %s has initial power below its minimum generation based on commitment' % u)
+            if initial_power_MW < minimum_initial_power_MW:
+                print('Unit %s has its initial power < minimum generation based on commitment' % u)
 
-            if  initial_power_MW > maximum_initial_power_MW:
-                print('Unit %s has initial power above its maximum generation based on commitment' % u)
-        
+            if initial_power_MW > maximum_initial_power_MW:
+                print('Unit %s has initial power > maximum generation based on commitment' % u)
+
         for u in sets['units_storage'].indices:
             if self.initial_state['StorageLevel_frac'][u] > 1:
                 print('Unit %s has initial storage fraction greater than 1' % u)
                 exit()
- 
+
     def add_arma_scenarios(self, scenarios, random_seed):
         import numpy as np
 
-        def fill_arma_vals_for_scenario_and_intervals(scenarios, new_trace, orig_df):
+        def fill_arma_vals_for_scens_and_ints(scenarios, new_trace, orig_df):
             for scenario in scenarios.indices[1:]:
                 new_trace.loc[:, (scenario, region)] = orig_df[region]
 
@@ -205,19 +208,22 @@ class Data:
 
                 for i in new_trace.index.to_list()[1:]:
                     forecast_error[i] = \
-                        arma_alpha * forecast_error[i-1] + distribution[i] + distribution[i-1] * arma_beta
+                        arma_alpha * forecast_error[i-1] \
+                        + distribution[i] + distribution[i-1] * arma_beta
+
                     if trace_name == 'demand':
                         new_trace.loc[i, (scenario, region)] = \
                             (1 + forecast_error[i]) * new_trace.loc[i, (0, region)]
                     elif trace_name in ['wind', 'solarPV']:
                         new_trace.loc[i, (scenario, region)] = \
                             forecast_error[i] + new_trace.loc[i, (0, region)]
+
             return new_trace
 
         def enforce_limits(new_trace, trace_name):
             if trace_name in ['wind', 'solarPV']:
                 new_trace = new_trace.clip(lower=0, upper=1)
-            if trace_name in ['demand',]:
+            if trace_name in ['demand']:
                 new_trace = new_trace.clip(lower=0)
             return new_trace
 
@@ -226,7 +232,7 @@ class Data:
         self.traces = dict()
 
         module_path = os.path.split(os.path.abspath(__file__))[0]
-        path_to_arma_vals = os.path.join(module_path, 'arma_values.csv') 
+        path_to_arma_vals = os.path.join(module_path, 'arma_values.csv')
         arma_vals_df = pd.read_csv(path_to_arma_vals, index_col=0)
 
         for trace_name, trace in self.orig_traces.items():
@@ -234,7 +240,7 @@ class Data:
 
             df_cols = pd.MultiIndex.from_product([scenarios.indices, orig_df.columns])
             df_cols = df_cols.set_names(['Scenario', 'Region'])
-            new_trace = pd.DataFrame(index=orig_df.index, columns = df_cols)
+            new_trace = pd.DataFrame(index=orig_df.index, columns=df_cols)
 
             arma_alpha = arma_vals_df[trace_name]['alpha']
             arma_beta = arma_vals_df[trace_name]['beta']
@@ -242,8 +248,8 @@ class Data:
 
             for region in orig_df.columns:
                 new_trace.loc[:, (0, region)] = orig_df[region]
-                new_trace = fill_arma_vals_for_scenario_and_intervals(scenarios, new_trace, orig_df)
+                new_trace = fill_arma_vals_for_scens_and_ints(scenarios, new_trace, orig_df)
                 new_trace = enforce_limits(new_trace, trace_name)
             new_trace.round(5)
-            
+
             self.traces[trace_name] = new_trace

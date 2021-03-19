@@ -6,10 +6,10 @@ def supply_eq_demand(sets, data, vars, mod):
         for s in sets['scenarios'].indices:
 
             label = 'meet_demand_i_%d_s_%d' % (i, s)
-            
+
             condition = \
                 (
-                 pp.lpSum([vars['power_generated'].var[(i, s, u)] 
+                 pp.lpSum([vars['power_generated'].var[(i, s, u)]
                            for u in sets['units'].indices])
                  + vars['unserved_power'].var[(i, s)]
                  ==
@@ -18,7 +18,7 @@ def supply_eq_demand(sets, data, vars, mod):
                              * (1 / data.units['RTEfficiency'][u])
                              for u in sets['units_storage'].indices])
                  )
-            
+
             mod += condition, label
     return mod
 
@@ -33,7 +33,7 @@ def intermittent_resource_availability(sets, data, vars, mod):
             print('Technology not known')
             exit()
         return trace
-    
+
     for u in sets['units_variable'].indices:
         region = data.units['Region'][u]
         technology = data.units['Technology'][u]
@@ -42,11 +42,11 @@ def intermittent_resource_availability(sets, data, vars, mod):
             trace = get_resource_trace(s, region, technology)
             for i in sets['intervals'].indices:
                 label = 'variable_resource_availability_u_%s_i_%d_s_%d' % (u, i, s)
-                
+
                 condition = \
                     (
-                     vars['power_generated'].var[(i, s, u)] \
-                         <= trace[i] * data.units['Capacity_MW'][u]
+                     vars['power_generated'].var[(i, s, u)]
+                     <= trace[i] * data.units['Capacity_MW'][u]
                     )
 
                 mod += condition, label
@@ -63,8 +63,8 @@ def commitment_continuity(sets, data, vars, mod):
 
                 condition = \
                     (
-                     vars['num_commited'].var[(i, u)] 
-                     == 
+                     vars['num_commited'].var[(i, u)]
+                     ==
                      data.initial_state['NumCommited'][u]
                      + vars['num_starting_up'].var[(i, u)]
                      - vars['num_shutting_down'].var[(i, u)]
@@ -75,8 +75,8 @@ def commitment_continuity(sets, data, vars, mod):
 
                 condition = \
                     (
-                     vars['num_commited'].var[(i, u)] 
-                     == 
+                     vars['num_commited'].var[(i, u)]
+                     ==
                      vars['num_commited'].var[(i-1, u)]
                      + vars['num_starting_up'].var[(i, u)]
                      - vars['num_shutting_down'].var[(i, u)]
@@ -93,8 +93,8 @@ def max_units_committed(sets, data, vars, mod):
             label = 'num_units_commit_lt_exist_%s_int_%s' % (u, i)
 
             condition = \
-                (vars['num_commited'].var[(i, u)] 
-                 <= 
+                (vars['num_commited'].var[(i, u)]
+                 <=
                  data.units['NoUnits'][u])
 
             mod += condition, label
@@ -109,7 +109,8 @@ def power_lt_committed_capacity(sets, data, vars, mod):
                 label = 'power_lt_commited_cap_%s_int_%s_s_%s' % (u, i, s)
 
                 condition = \
-                    (vars['power_generated'].var[(i, s, u)] + vars['reserve_enablement'].var[(i, s, u)]
+                    (vars['power_generated'].var[(i, s, u)]
+                     + vars['reserve_enablement'].var[(i, s, u)]
                      <=
                      vars['num_commited'].var[(i, u)] * data.units['Capacity_MW'][u])
 
@@ -126,7 +127,9 @@ def power_gt_min_stable_gen(sets, data, vars, mod):
                 condition = \
                     (vars['power_generated'].var[(i, s, u)]
                      >=
-                     vars['num_commited'].var[(i, u)] * data.units['Capacity_MW'][u] * data.units['MinGen'][u])
+                     vars['num_commited'].var[(i, u)]
+                     * data.units['Capacity_MW'][u]
+                     * data.units['MinGen'][u])
 
                 mod += condition, label
     return mod
@@ -137,13 +140,14 @@ def power_lt_capacity(sets, data, vars, mod):
         for s in sets['scenarios'].indices:
             for u in sets['units'].indices:
                 label = 'power_lt_cap_%s_i_%d_s_%d' % (u, i, s)
-                
+
                 condition = \
-                    (vars['power_generated'].var[(i, s, u)] + vars['reserve_enablement'].var[(i, s, u)]
+                    (vars['power_generated'].var[(i, s, u)]
+                     + vars['reserve_enablement'].var[(i, s, u)]
                      <=
                      data.units['Capacity_MW'][u] * data.units['NoUnits'][u]
-                    )
-                
+                     )
+
                 mod += condition, label
     return mod
 
@@ -159,9 +163,11 @@ def energy_storage_continuity(sets, data, vars, mod, settings):
                         (vars['energy_in_reservoir'].var[(i, s, u)]
                          ==
                          vars['energy_in_reservoir'].var[(i-1, s, u)]
-                         + vars['charge_after_losses'].var[(i, s, u)] * (1 / settings['INTERVALS_PER_HOUR'])
-                         - vars['power_generated'].var[(i, s, u)] * (1 / settings['INTERVALS_PER_HOUR'])
-                        )
+                         + vars['charge_after_losses'].var[(i, s, u)]
+                         * (1 / settings['INTERVALS_PER_HOUR'])
+                         - vars['power_generated'].var[(i, s, u)]
+                         * (1 / settings['INTERVALS_PER_HOUR'])
+                         )
                     mod += condition, label
     return mod
 
@@ -179,7 +185,8 @@ def energy_storage_continuity_first_interval(sets, data, vars, mod, settings):
                 (vars['energy_in_reservoir'].var[(i, s, u)]
                  ==
                  initial_energy_in_reservoir
-                 + vars['charge_after_losses'].var[(i, s, u)] * (1 / settings['INTERVALS_PER_HOUR'])
+                 + vars['charge_after_losses'].var[(i, s, u)]
+                 * (1 / settings['INTERVALS_PER_HOUR'])
                  - vars['power_generated'].var[(i, s, u)] * (1 / settings['INTERVALS_PER_HOUR']))
             mod += condition, label
     return mod
@@ -190,7 +197,7 @@ def max_stored_energy(sets, data, vars, mod):
         for s in sets['scenarios'].indices:
             for u in sets['units_storage'].indices:
                 label = 'max_stored_energy_%s_int_%s_s_%s' % (u, i, s)
-                
+
                 condition = \
                     (
                      vars['energy_in_reservoir'].var[(i, s, u)]
@@ -234,25 +241,25 @@ def add_all_constraints_to_dataframe(sets, data, vars, settings, mod, constraint
 
     if constraints_df['Include']['intermittent_resource_availability'] == 1:
         mod = intermittent_resource_availability(sets, data, vars, mod)
-    
+
     if constraints_df['Include']['commitment_continuity'] == 1:
         mod = commitment_continuity(sets, data, vars, mod)
-    
+
     if constraints_df['Include']['max_units_committed'] == 1:
         mod = max_units_committed(sets, data, vars, mod)
-    
+
     if constraints_df['Include']['power_lt_committed_capacity'] == 1:
         mod = power_lt_committed_capacity(sets, data, vars, mod)
-    
+
     if constraints_df['Include']['power_gt_min_stable_gen'] == 1:
         mod = power_gt_min_stable_gen(sets, data, vars, mod)
-    
+
     if constraints_df['Include']['energy_storage_continuity'] == 1:
         mod = energy_storage_continuity(sets, data, vars, mod, settings)
-    
+
     if constraints_df['Include']['energy_storage_continuity_first_interval'] == 1:
         mod = energy_storage_continuity_first_interval(sets, data, vars, mod, settings)
-    
+
     if constraints_df['Include']['max_stored_energy'] == 1:
         mod = max_stored_energy(sets, data, vars, mod)
 

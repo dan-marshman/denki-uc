@@ -9,8 +9,10 @@ def check_power_gt_min_stable_gen(sets, data, results):
         for i in sets['intervals'].indices:
             for s in sets['scenarios'].indices:
                 if results['num_commited'][u][i] > 0:
-                    if results['power_generated'][(s, u)][i] < results['num_commited'][u][i] * mingen_MW:
-                        print('Sanity Check: Unit', u, 'Interval', i, 'generating below its min stable gen')
+                    minimum_generation = results['num_commited'][u][i] * mingen_MW
+                    if results['power_generated'][(s, u)][i] < minimum_generation:
+                        print('Sanity Check: Unit', u, 'Interval', i,
+                              'generating below its min stable gen')
                         errors_count += 1
 
     return errors_count
@@ -23,7 +25,8 @@ def check_power_lt_committed_capacity(sets, data, results):
         unit_capacity = data.units['Capacity_MW'][u]
         for i in sets['intervals'].indices:
             for s in sets['scenarios'].indices:
-                if results['power_generated'][(s, u)][i] > results['num_commited'][u][i] * unit_capacity:
+                maximum_generation = results['num_commited'][u][i] * unit_capacity
+                if results['power_generated'][(s, u)][i] > maximum_generation:
                     print('Sanity Check: Unit', u, 'Interval', i, 'generating above its capacity')
                     errors_count += 1
 
@@ -65,12 +68,11 @@ def check_energy_charged_lt_charge_capacity(sets, data, results):
 def total_gen_equals_demand(sets, results):
     errors_count = 0
 
-    
     dispatch = results['dispatch']
     df_cols = dispatch.columns.to_list()
 
     for s in sets['scenarios'].indices:
-        filtered_cols = [c for c in df_cols if c[0]==s]
+        filtered_cols = [c for c in df_cols if c[0] == s]
         dispatch_sum = dispatch[filtered_cols].sum(axis=1).round(4)
 
         if dispatch_sum.sum() != 0:
