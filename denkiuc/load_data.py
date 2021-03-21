@@ -58,6 +58,7 @@ def load_master_sets(data, settings):
     sets['intervals'] = dkSet('intervals', data.orig_traces['demand'].index.to_list())
     sets['units'] = dkSet('units', data.units.index.to_list())
     sets['scenarios'] = dkSet('scenarios', list(range(settings['NUM_SCENARIOS'])))
+    sets['reserves'] = dkSet('reserves', ['PrimaryRaise', 'PrimaryLower'])
 
     return sets
 
@@ -70,6 +71,24 @@ def load_unit_subsets(data, sets):
     sets['units_commit'] = dkSet('units_commit', units_commit, sets['units'])
     sets['units_storage'] = dkSet('units_storage', units_storage, sets['units'])
     sets['units_variable'] = dkSet('units_variable', units_variable, sets['units'])
+
+    return sets
+
+
+def add_reserve_subsets(sets):
+    raise_reserves = list()
+    lower_reserves = list()
+
+    for r in sets['reserves'].indices:
+        if 'Raise' in r:
+            raise_reserves.append(r)
+        elif 'Lower' in r:
+            lower_reserves.append(r)
+        else:
+            print('Member of reserves', r, 'has not been fit into Raise or Lower categories.')
+
+    sets['raise_reserves'] = dkSet('raise_reserves', raise_reserves, sets['reserves'])
+    sets['lower_reserves'] = dkSet('lower_reserves', lower_reserves, sets['reserves'])
 
     return sets
 
@@ -112,48 +131,46 @@ def define_scenario_probability(scenarios):
 
 class Data:
     def __init__(self, path_to_inputs):
-        self.orig_traces = self.load_traces(path_to_inputs)
-        self.units = self.load_unit_data(path_to_inputs)
-        self.initial_state = self.load_initial_state(path_to_inputs)
+        self.missing_values = dict()
+
+        self.load_traces(path_to_inputs)
+        self.load_ancillary_service_requirements(path_to_inputs)
+        self.load_unit_data(path_to_inputs)
+        self.load_initial_state(path_to_inputs)
 
     def load_traces(self, path_to_inputs):
-        traces = dict()
+        self.orig_traces = dict()
         trace_files = ['demand', 'wind', 'solarPV']
 
         for file in trace_files:
             file_path = os.path.join(path_to_inputs, file + '.csv')
             if os.path.exists(file_path):
                 df = pd.read_csv(file_path, index_col=0)
-                traces[file] = df
+                self.orig_traces[file] = df
             else:
                 print("Looking for trace file - doesn't exist", file_path)
                 exit()
-
-        return traces
 
     def load_unit_data(self, path_to_inputs):
         unit_data_path = os.path.join(path_to_inputs, 'unit_data.csv')
 
         if os.path.exists(unit_data_path):
-            unit_data = pd.read_csv(unit_data_path, index_col=0)
+            self.units = pd.read_csv(unit_data_path, index_col=0)
 
         else:
             print("Looking for unit data file - doesn't exist", unit_data_path)
             exit()
 
-        return unit_data
-
     def load_initial_state(self, path_to_inputs):
         initial_state_path = os.path.join(path_to_inputs, 'initial_state.csv')
 
         if os.path.exists(initial_state_path):
-            initial_state = pd.read_csv(initial_state_path, index_col=0)
+            self.initial_state = pd.read_csv(initial_state_path, index_col=0)
+            self.missing_values['initial_state'] = False
 
         else:
             print("Looking for initial state file - doesn't exist", initial_state_path)
-            exit()
-
-        return initial_state
+            self.missing_values['initial_state'] = True
 
     def validate_initial_state_data(self, sets):
         for u in sets['units_commit'].indices:
@@ -255,3 +272,19 @@ class Data:
             new_trace.round(5)
 
             self.traces[trace_name] = new_trace
+
+    def load_ancillary_service_requirements(self, path_to_inputs):
+        reserve_requirement_path = os.path.join(path_to_inputs, 'reserve_requirement.csv')
+
+        if os.path.exists(reserve_requirement_path):
+            self.reserve_requirement = pd.read_csv(reserve_requirement_path, index_col=0)
+            self.missing_values['reserve_requirement'] = False
+
+        else:
+            print("Looking for reserve_requirement - doesn't exist", reserve_requirement_path)
+            self.missing_values['reserve_requirement'] = True
+
+    def add_default_values(self, sets):
+        if self.missing_values['reserve_requirement']:
+            self.reserve_requirement = \
+                pd.DataFrame(0, index=sets['intervals'].indices, columns=sets['reserves'])

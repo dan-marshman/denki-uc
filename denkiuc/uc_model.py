@@ -25,10 +25,16 @@ class ucModel():
         self.data = ld.Data(path_to_inputs)
         self.sets = ld.load_master_sets(self.data, self.settings)
         self.sets = ld.load_unit_subsets(self.data, self.sets)
+        self.sets = ld.add_reserve_subsets(self.sets)
         self.sets = ld.load_interval_subsets(self.settings, self.sets)
         self.data.probability_of_scenario = ld.define_scenario_probability(self.sets['scenarios'])
         self.data.add_arma_scenarios(self.sets['scenarios'], self.settings['RANDOM_SEED'])
-        self.data.validate_initial_state_data(self.sets)
+
+        if not self.data.missing_values['initial_state']:
+            self.data.validate_initial_state_data(self.sets)
+
+        self.data.add_default_values(self.sets)
+
         self.vars = va.make_all_variables(self.sets)
 
         self.build_model()
@@ -101,7 +107,7 @@ class ucModel():
             if self.settings['WRITE_RESULTS_WITHOUT_LOOK_AHEAD']:
                 dkvar.write_to_file(path_to_results, removed_la=True)
 
-        self.results = acs.add_custom_results(self.data, self.results, path_to_results)
+        self.results = acs.add_custom_results(self.data, self.results, path_to_results, self.settings)
 
     def sanity_check_solution(self):
         import denkiuc.sanity_check_solution as scs

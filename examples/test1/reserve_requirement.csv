@@ -1,4 +1,5 @@
-Interval,VIC,NSW
+Interval,PrimaryRaise,PrimaryLower
+0,30,10
 1,30,10
 2,30,10
 3,30,10
@@ -46,4 +47,3 @@ Interval,VIC,NSW
 45,30,10
 46,30,10
 47,30,10
-48,30,10

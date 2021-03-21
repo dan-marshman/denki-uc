@@ -1,4 +1,5 @@
 import pulp as pp
+import numpy as np
 
 
 def supply_eq_demand(sets, data, vars, mod):
@@ -22,23 +23,34 @@ def supply_eq_demand(sets, data, vars, mod):
     return mod
 
 
+def meet_reserve_requirement(sets, data, vars, mod):
+    for r in sets['reserves'].indices:
+        for i in sets['intervals'].indices:
+            for s in sets['scenarios'].indices:
+                label = 'meet_reserve_requirement_i_%d_s_%d_r_%s' % (i, s, r)
+                condition = \
+                    (
+                     pp.lpSum([vars['reserve_enabled'].var[(i, s, u, r)]
+                               for u in sets['units'].indices])
+                     + vars['unserved_reserve'].var[(i, s, r)]
+                     >=
+                     data.reserve_requirement[r][i]
+                     )
+
+                mod += condition, label
+
+    return mod
+
+
 def intermittent_resource_availability(sets, data, vars, mod):
-    def get_resource_trace(scenario, region, technology):
-        if technology == 'Wind':
-            trace = data.traces['wind'][(scenario, 'Wind')].to_dict()
-        elif technology == 'SolarPV':
-            trace = data.traces['solarPV'][(scenario, 'Solar')].to_dict()
-        else:
-            print('Technology not known')
-            exit()
-        return trace
+    import denkiuc.misc_functions as mf
 
     for u in sets['units_variable'].indices:
         region = data.units['Region'][u]
         technology = data.units['Technology'][u]
 
         for s in sets['scenarios'].indices:
-            trace = get_resource_trace(s, region, technology)
+            trace = mf.get_resource_trace(s, region, technology, data)
             for i in sets['intervals'].indices:
                 label = 'variable_resource_availability_u_%s_i_%d_s_%d' % (u, i, s)
 
@@ -109,7 +121,8 @@ def power_lt_committed_capacity(sets, data, vars, mod):
 
                 condition = \
                     (vars['power_generated'].var[(i, s, u)]
-                     + vars['reserve_enablement'].var[(i, s, u)]
+                     + pp.lpSum(vars['reserve_enabled'].var[(i, s, u, r)]
+                                for r in sets['raise_reserves'].indices)
                      <=
                      vars['num_commited'].var[(i, u)] * data.units['Capacity_MW'][u])
 
@@ -125,6 +138,8 @@ def power_gt_min_stable_gen(sets, data, vars, mod):
 
                 condition = \
                     (vars['power_generated'].var[(i, s, u)]
+                     - pp.lpSum(vars['reserve_enabled'].var[(i, s, u, r)]
+                                for r in sets['lower_reserves'].indices)
                      >=
                      vars['num_commited'].var[(i, u)]
                      * data.units['Capacity_MW'][u]
@@ -142,7 +157,8 @@ def power_lt_capacity(sets, data, vars, mod):
 
                 condition = \
                     (vars['power_generated'].var[(i, s, u)]
-                     + vars['reserve_enablement'].var[(i, s, u)]
+                     + pp.lpSum(vars['reserve_enabled'].var[(i, s, u, r)]
+                                for r in sets['raise_reserves'].indices)
                      <=
                      data.units['Capacity_MW'][u] * data.units['NoUnits'][u]
                      )
@@ -180,7 +196,7 @@ def minimum_down_time(sets, data, vars, mod, settings):
 
         for u in sets['units_commit'].indices:
             unit_down_time = data.units['MinDownTime_h'][u]
-            if i - i0  <= unit_down_time:
+            if i - i0 <= unit_down_time:
                 pass
 
             i_low = 1 + max(i0 - 1, i - settings['INTERVALS_PER_HOUR'] * unit_down_time)
@@ -268,6 +284,112 @@ def max_charge(sets, data, vars, mod):
     return mod
 
 
+def maximum_reserve_enablement(sets, data, vars, mod):
+    import denkiuc.misc_functions as mf
+
+    for u in sets['units'].indices:
+        if u in sets['units_commit'].indices:
+            for r in sets['reserves'].indices:
+                max_reserves_per_unit = mf.get_max_reserves_per_unit(u, r, data.units)
+
+                for i in sets['intervals'].indices:
+                    for s in sets['scenarios'].indices:
+                        label = 'maximum_reserves_enabled_i_%d_s_%s_u_%s_r_%s' % (i, s, u, r)
+                        condition = (
+                            vars['reserve_enabled'].var[(i, s, u, r)]
+                            <=
+                            vars['num_commited'].var[(i, u)] * max_reserves_per_unit
+                            )
+                        mod += condition, label
+
+        else:
+            for r in sets['reserves'].indices:
+                max_reserves_per_unit = mf.get_max_reserves_per_unit(u, r, data.units)
+
+                for i in sets['intervals'].indices:
+                    for s in sets['scenarios'].indices:
+                        label = 'maximum_reserves_enabled_i_%d_s_%s_u_%s_r_%s' % (i, s, u, r)
+                        condition = (
+                            vars['reserve_enabled'].var[(i, s, u, r)]
+                            <=
+                            data.units['NoUnits'][u] * max_reserves_per_unit
+                            )
+
+                        mod += condition, label
+
+    return mod
+
+
+def limit_rocof(sets, data, vars, mod, settings):
+    import denkiuc.misc_functions as mf
+
+    def define_rocof_condition(settings, contingency_size, available_inertia):
+        condition = \
+            (
+             2 * settings['MAX_ROCOF'] * available_inertia
+             >=
+             contingency_size * settings['SYSTEM_FREQUENCY']
+            )
+
+        return condition
+
+    for i in sets['intervals'].indices:
+        system_inertia = \
+            pp.lpSum(vars['num_commited'].var[(i, u2)]
+                     * data.units['InertialConst_s'][u2]
+                     * data.units['Capacity_MW'][u2]
+                     for u2 in sets['units_commit'].indices)
+
+        for u in sets['units'].indices:
+            label = 'limit_rocof_%s_int_%d_s' % (u, i)
+
+            if u in sets['units_commit'].indices:
+                units_inertia = \
+                    vars['num_commited'].var[(i, u)] \
+                    * data.units['InertialConst_s'][u] \
+                    * data.units['Capacity_MW'][u]
+
+                contingency_size = vars['is_committed'].var[(i, u)] * data.units['Capacity_MW'][u]
+
+            elif u in sets['units_variable'].indices:
+                for s in sets['scenarios'].indices:
+                    units_inertia = 0
+                    technology = data.units['Technology'][u]
+                    region = data.units['Region'][u]
+                    scenario = data.units['Region'][u]
+                    trace = mf.get_resource_trace(s, region, technology, data)
+                    contingency_size = trace[i] * data.units['Capacity_MW'][u]
+
+            elif u in sets['units_storage'].indices:
+                units_inertia = 0
+                contingency_size = data.units['Capacity_MW'][u]
+
+            available_inertia = system_inertia - units_inertia
+
+            condition = define_rocof_condition(settings, contingency_size, available_inertia)
+
+            mod += condition, label
+
+    return mod
+
+
+def define_is_committed(sets, data, vars, mod):
+    for i in sets['intervals'].indices:
+        for u in sets['units_commit'].indices:
+            label = 'define_is_committed_%s_int_%d_s' % (u, i)
+
+            condition = \
+                (
+                 vars['num_commited'].var[(i, u)]
+                 <=
+                 vars['is_committed'].var[(i, u)] * data.units['NoUnits'][u]
+                )
+
+            mod += condition, label
+
+    return mod
+
+
 def create_constraints_df(path_to_inputs):
     import os
     import pandas as pd
@@ -279,6 +401,9 @@ def create_constraints_df(path_to_inputs):
 def add_all_constraints_to_dataframe(sets, data, vars, settings, mod, constraints_df):
     if constraints_df['Include']['supply_eq_demand'] == 1:
         mod = supply_eq_demand(sets, data, vars, mod)
+
+    if constraints_df['Include']['meet_reserve_requirement'] == 1:
+        mod = meet_reserve_requirement(sets, data, vars, mod)
 
     if constraints_df['Include']['power_lt_capacity'] == 1:
         mod = power_lt_capacity(sets, data, vars, mod)
@@ -315,5 +440,14 @@ def add_all_constraints_to_dataframe(sets, data, vars, settings, mod, constraint
 
     if constraints_df['Include']['max_charge'] == 1:
         mod = max_charge(sets, data, vars, mod)
+
+    if constraints_df['Include']['maximum_reserve_enablement'] == 1:
+        mod = maximum_reserve_enablement(sets, data, vars, mod)
+
+    if constraints_df['Include']['limit_rocof'] == 1:
+        mod = limit_rocof(sets, data, vars, mod, settings)
+
+    if constraints_df['Include']['define_is_committed'] == 1:
+        mod = define_is_committed(sets, data, vars, mod)
 
     return mod

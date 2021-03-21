@@ -6,17 +6,23 @@ def make_all_variables(sets):
 
     intervals_units = [sets['intervals'], sets['scenarios'], sets['units']]
     vars['power_generated'] = dkVariable('power_generated', 'MW', intervals_units)
-    vars['reserve_enablement'] = dkVariable('reserve_enablement', 'MW', intervals_units)
 
     intervals_units_commit = [sets['intervals'], sets['units_commit']]
     vars['num_commited'] = \
         dkVariable('num_commited', 'NumUnits', intervals_units_commit, 'Integer')
     vars['inertia_provided'] = \
         dkVariable('inertia_provided', 'MW.s', intervals_units_commit)
+    vars['is_committed'] = \
+        dkVariable('is_committed', 'Binary', intervals_units_commit, 'Binary')
     vars['num_shutting_down'] = \
         dkVariable('num_shutting_down', 'NumUnits', intervals_units_commit, 'Integer')
     vars['num_starting_up'] = \
         dkVariable('num_starting_up', 'NumUnits', intervals_units_commit, 'Integer')
+
+    intervals_units_reserves = \
+        [sets['intervals'], sets['scenarios'], sets['units'], sets['reserves']]
+    vars['reserve_enabled'] = \
+        dkVariable('reserve_enabled', 'MW', intervals_units_reserves)
 
     intervals_units_storage = [sets['intervals'], sets['scenarios'], sets['units_storage']]
     vars['charge_after_losses'] = dkVariable('charge_after_losses', 'MW', intervals_units_storage)
@@ -25,8 +31,9 @@ def make_all_variables(sets):
     vars['unserved_inertia'] = dkVariable('unserved_inertia', 'MW.s', [sets['intervals']])
     vars['unserved_power'] = \
         dkVariable('unserved_power', 'MW', [sets['intervals'], sets['scenarios']])
-    vars['unserved_reserve'] = \
-        dkVariable('unserved_reserve', 'MW', [sets['intervals'], sets['scenarios']])
+
+    intervals_scenarios_reserves = [sets['intervals'], sets['scenarios'], sets['reserves']]
+    vars['unserved_reserve'] = dkVariable('unserved_reserve', 'MW', intervals_scenarios_reserves)
 
     return vars
 
@@ -93,8 +100,8 @@ class dkVariable():
 
         if num_indexes == 3:
             iterables = [sets_order[1].indices, sets_order[2].indices]
-            df_cols = pd.MultiIndex.from_product(iterables,
-                                                 names=[sets_order[1].name, sets_order[2].name])
+            iterables_names = [sets_order[1].name, sets_order[2].name]
+            df_cols = pd.MultiIndex.from_product(iterables, names=iterables_names)
 
             self.result_df = pd.DataFrame(index=sets_order[0].indices, columns=df_cols)
             self.result_df.index.name = sets_order[0].name
@@ -102,6 +109,19 @@ class dkVariable():
                 for x1 in sets_order[1].indices:
                     for x2 in sets_order[2].indices:
                         self.result_df.loc[x0, (x1, x2)] = self.var[(x0, x1, x2)].value()
+
+        if num_indexes == 4:
+            iterables = [sets_order[1].indices, sets_order[2].indices, sets_order[3].indices]
+            iterables_names = [sets_order[1].name, sets_order[2].name, sets_order[3].name]
+            df_cols = pd.MultiIndex.from_product(iterables, names=iterables_names)
+
+            self.result_df = pd.DataFrame(index=sets_order[0].indices, columns=df_cols)
+            self.result_df.index.name = sets_order[0].name
+            for x0 in sets_order[0].indices:
+                for x1 in sets_order[1].indices:
+                    for x2 in sets_order[2].indices:
+                        for x3 in sets_order[3].indices:
+                            self.result_df.loc[x0, (x1, x2, x3)] = self.var[(x0, x1, x2, x3)].value()
 
         self.result_df.index.name = sets_order[0].name
         self.result_df = self.result_df.astype(float)

@@ -56,9 +56,11 @@ def unserved_obj_fn_terms(sets, data, vars, settings):
 
     obj_uns_reserve = \
         pp.lpSum(
-                 [settings['UNS_RESERVE_PNTY'] * vars['unserved_reserve'].var[(i, s)]
+                 [settings['UNS_RESERVE_PNTY'] * vars['unserved_reserve'].var[(i, s, r)]
                   * data.probability_of_scenario[s]
-                  for i in sets['intervals'].indices for s in sets['scenarios'].indices]
+                  for i in sets['intervals'].indices
+                  for s in sets['scenarios'].indices
+                  for r in sets['reserves'].indices]
                 )
 
     obj_uns_inertia = \

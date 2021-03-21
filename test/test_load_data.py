@@ -10,17 +10,17 @@ test1_path = os.path.join(uc.path_to_tests, 'test1')
 class load_dataTests(unittest.TestCase):
     def test_traces_are_loaded(self):
         test_model = uc.ucModel('test1', test1_path)
-        val = test_model.data.traces['demand'][(0, 'Demand')][0] 
+        val = test_model.data.traces['demand'][(0, 'Demand')][0]
         self.assertEqual(val, 1000)
 
     def test_unit_data_is_loaded(self):
         test_model = uc.ucModel('test1', test1_path)
-        val = test_model.data.units['Capacity_MW']['Coal1'] 
+        val = test_model.data.units['Capacity_MW']['Coal1']
         self.assertEqual(val, 510)
 
     def test_initial_state_is_loaded(self):
         test_model = uc.ucModel('test1', test1_path)
-        val = test_model.data.initial_state['PowerGeneration_MW']['Coal1'] 
+        val = test_model.data.initial_state['PowerGeneration_MW']['Coal1']
         self.assertEqual(val, 300)
 
     def test_initial_state_commit_is_wrong_1(self):
@@ -57,7 +57,7 @@ class load_dataTests(unittest.TestCase):
             )
         self.assertEqual(result, (2393.924, 0.442, 0))
 
-    def test_negative_wind_trace(self):
+    def test_negative_trace(self):
         test_model = uc.ucModel('test1', test1_path)
         scenarios = test_model.sets['scenarios']
         scenarios.indices = list(range(2))
@@ -66,7 +66,7 @@ class load_dataTests(unittest.TestCase):
         test_model.data.orig_traces['wind']['Wind'][12] = -5000
         test_model.data.orig_traces['solarPV']['Solar'][12] = -5000
 
-        test_model.data.add_arma_scenarios(scenarios, random_seed = 5)
+        test_model.data.add_arma_scenarios(scenarios, random_seed=5)
 
         result = (
                   test_model.data.traces['demand'][(1, 'Demand')][12],
@@ -76,7 +76,7 @@ class load_dataTests(unittest.TestCase):
 
         self.assertEqual(result, (0, 0, 0))
 
-    def test_negative_wind_trace(self):
+    def test_too_large_intermittent_trace(self):
         test_model = uc.ucModel('test1', test1_path)
         scenarios = test_model.sets['scenarios']
         scenarios.indices = list(range(2))
@@ -85,7 +85,7 @@ class load_dataTests(unittest.TestCase):
         test_model.data.orig_traces['solarPV']['Solar'][12] = 5000
         test_model.data.orig_traces['demand']['Demand'][12] = 5000
 
-        test_model.data.add_arma_scenarios(scenarios, random_seed = 5)
+        test_model.data.add_arma_scenarios(scenarios, random_seed=5)
 
         result = (
                   round(test_model.data.traces['demand'][(1, 'Demand')][12]),
@@ -94,12 +94,20 @@ class load_dataTests(unittest.TestCase):
                 )
         self.assertEqual(result, (4821, 1, 1))
 
+
 class settingsTests(unittest.TestCase):
     def test_settings_loaded(self):
         test_model = uc.ucModel('test1', test1_path)
         val = test_model.settings['OUTPUTS_PATH']
-        expected_path = \
-            os.path.abspath(os.path.join(os.sep, 'Users', 'danie', 'Documents', 'denki-uc', 'test', 'outputs'))
+
+        expected_path = os.path.abspath(os.path.join(os.sep,
+                                                     'Users',
+                                                     'danie',
+                                                     'Documents',
+                                                     'denki-uc',
+                                                     'test',
+                                                     'outputs'))
+
         self.assertEqual(val, expected_path)
 
 
@@ -143,7 +151,7 @@ class setsTests(unittest.TestCase):
         master_set = denkiuc.load_data.dkSet('master', [1, 2, 3, 4])
         sub_set = denkiuc.load_data.dkSet('sub', [1, 2, 'NonMember'])
         with self.assertRaises(ValueError) as error:
-            validate_result = sub_set.validate_set(master_set)
+            sub_set.validate_set(master_set)
         self.assertEqual(str(error.exception), 'Subset validation error')
 
     def test_look_ahead_intervals_correct(self):
