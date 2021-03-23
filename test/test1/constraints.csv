@@ -13,3 +13,6 @@ max_stored_energy,1
 max_charge,1
 max_units_committed,1
 maximum_reserve_enablement,1
+meet_reserve_requirement,1
+limit_rocof,1
+define_is_committed,1

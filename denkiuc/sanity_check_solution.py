@@ -44,7 +44,7 @@ def check_power_lt_capacity(sets, data, results):
                 if results['power_generated'][(s, u)][i] > total_capacity:
                     print('Sanity Check: Unit', u, 'Interval', i,
                           'generating above its capacity', '(%f > %f)' %
-                          (round(results['power_generated'][u][i]), round(total_capacity)))
+                          (round(results['power_generated'][(s, u)][i]), round(total_capacity)))
                     errors_count += 1
 
     return errors_count
@@ -53,8 +53,9 @@ def check_power_lt_capacity(sets, data, results):
 def check_energy_charged_lt_charge_capacity(sets, data, results):
     errors_count = 0
 
-    for u in list(sets['units_storage'].indices):
-        charge_capacity = data.units['Capacity_MW'][u] / data.units['RTEfficiency'][u]
+    for u in sets['units_storage'].indices:
+        charge_capacity = \
+            data.units['NoUnits'][u] * data.units['Capacity_MW'][u] * data.units['RTEfficiency'][u]
         for s in sets['scenarios'].indices:
             for i in sets['intervals'].indices:
                 if results['charge_after_losses'][(s, u)][i] > charge_capacity:
@@ -247,8 +248,8 @@ def check_max_rocof(sets, results):
     errors_count = 0
 
     for i in sets['intervals'].indices:
-        max_rocof = results['max_rocof']['MaxRocof'][i] 
-        rocof_limit = results['max_rocof']['RocofLimit'][i] 
+        max_rocof = results['max_rocof']['MaxRocof'][i]
+        rocof_limit = results['max_rocof']['RocofLimit'][i]
         if  max_rocof > rocof_limit:
             print('Sanity Check: Interval', i,
                   ': Max RoCoF of', max_rocof, 'exceeds RoCoF limit of', rocof_limit)

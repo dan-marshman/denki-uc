@@ -119,7 +119,6 @@ path_to_denki = os.path.dirname(os.path.abspath(__file__))
 path_to_examples = os.path.join(os.path.dirname(path_to_denki), 'examples')
 path_to_tests = os.path.join(os.path.dirname(path_to_denki), 'test')
 
-
 if __name__ == '__main__':
     name = sys.argv[1]
     path_to_inputs = sys.argv[2]
