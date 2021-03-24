@@ -84,5 +84,10 @@ class economic_dispatch_sanity_checks(unittest.TestCase):
         self.assertEqual(test_result, counter)
 
 
+class unit_commitment_sanity_checks(unittest.TestCase):
+    def test_power_raise_reserves_lt_capacity_no_error(self):
+        pass
+
+
 if __name__ == '__main__':
     unittest.main()
