@@ -40,15 +40,18 @@ def add_total_charge_load(results, new_results):
 
 def add_inertia_dispatch(data, results):
     inertia_dispatch = results['num_commited'].copy()
-    print(inertia_dispatch.head())
-    print(type(inertia_dispatch))
 
     for col in inertia_dispatch.columns:
-        u = col[1]
-        inertia_dispatch.loc[:, col] = \
-            inertia_dispatch.loc[:, col] * data.units['InertialConst_s'][u] * data.units['Capacity_MW'][u]
+        for i in inertia_dispatch.index:
+            u = col[1]
+            inertia_dispatch.loc[i, col] = \
+                inertia_dispatch.loc[i, col] \
+                * data.units['InertialConst_s'][u] * data.units['Capacity_MW'][u]
 
-    inertia_dispatch['SystemInertia'] = inertia_dispatch.sum(axis=1)
+    scenarios = set([c[0] for c in inertia_dispatch.columns])
+    for s in scenarios:
+        filtered_cols = [c for c in inertia_dispatch.columns if c[0] == s]
+        inertia_dispatch[(s, 'SystemInertia')] = inertia_dispatch[filtered_cols].sum(axis=1)
 
     return inertia_dispatch
 
@@ -60,25 +63,29 @@ def add_maximum_rocof(data, new_results, settings):
 
     max_rocof_df.loc[:, 'RocofLimit'] = settings['MAX_ROCOF']
 
-    units = [u for u in new_results['inertia_dispatch'].columns if u != 'SystemInertia']
+    df_cols = new_results['inertia_dispatch'].columns
+    units = set([c[1] for c in df_cols if c[1] != 'SystemInertia'])
+    scenarios = set([c[0] for c in df_cols if c[1] != 'SystemInertia'])
 
     for i in new_results['inertia_dispatch'].index:
-        system_inertia = new_results['inertia_dispatch']['SystemInertia'][i]
         max_rocof = 0
-        for u in units:
-            units_inertia = new_results['inertia_dispatch'][u][i]
-            available_inertia = system_inertia - units_inertia
-            contingency_size = new_results['inertia_dispatch'][u][i] / data.units['InertialConst_s'][u]
+        for s in scenarios:
+            system_inertia = new_results['inertia_dispatch'][(s, 'SystemInertia')][i]
+            for u in units:
+                units_inertia = new_results['inertia_dispatch'][(s, u)][i]
+                available_inertia = system_inertia - units_inertia
+                contingency_size = \
+                    new_results['inertia_dispatch'][(s, u)][i] / data.units['InertialConst_s'][u]
 
-            rocof_in_units_failure = \
-                contingency_size * settings['SYSTEM_FREQUENCY'] / (2 * available_inertia)
+                rocof_in_units_failure = \
+                    contingency_size * settings['SYSTEM_FREQUENCY'] / (2 * available_inertia)
 
-            if rocof_in_units_failure > max_rocof:
-                max_rocof = rocof_in_units_failure
-                responsible_unit = u
+                if rocof_in_units_failure > max_rocof:
+                    max_rocof = rocof_in_units_failure
+                    responsible_unit = u
 
-        max_rocof_df.loc[i, 'MaxRocof'] = max_rocof
-        max_rocof_df.loc[i, 'ResponsibleUnit'] = responsible_unit
+            max_rocof_df.loc[i, 'MaxRocof'] = max_rocof
+            max_rocof_df.loc[i, 'ResponsibleUnit'] = responsible_unit
 
     return max_rocof_df
 

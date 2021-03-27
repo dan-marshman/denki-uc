@@ -121,7 +121,8 @@ class dkVariable():
                 for x1 in sets_order[1].indices:
                     for x2 in sets_order[2].indices:
                         for x3 in sets_order[3].indices:
-                            self.result_df.loc[x0, (x1, x2, x3)] = self.var[(x0, x1, x2, x3)].value()
+                            self.result_df.loc[x0, (x1, x2, x3)] = \
+                                self.var[(x0, x1, x2, x3)].value()
 
         self.result_df.index.name = sets_order[0].name
         self.result_df = self.result_df.astype(float)

@@ -1,6 +1,6 @@
 def process_error_msg(msg):
     print_error_msg = True
-    if print_error_msg == True:
+    if print_error_msg is True:
         print(msg)
     else:
         pass
@@ -16,10 +16,11 @@ def check_power_gt_min_stable_gen(sets, data, results):
 
         for i in sets['intervals'].indices:
             for s in sets['scenarios'].indices:
-                if results['num_commited'][u][i] > 0:
-                    minimum_generation = results['num_commited'][u][i] * mingen_MW
+                if results['num_commited'][(s, u)][i] > 0:
+                    minimum_generation = results['num_commited'][(s, u)][i] * mingen_MW
                     if results['power_generated'][(s, u)][i] < minimum_generation:
-                        msg = 'Sanity Check: Unit', u, 'Interval', i, 'generating below its min stable gen'
+                        msg = 'Sanity Check: Unit', u, 'Interval', i, \
+                            'generating below its min stable gen'
                         process_error_msg(msg)
                         errors_count += 1
 
@@ -35,8 +36,8 @@ def check_power_raise_reserves_lt_committed_capacity(sets, data, results):
 
         for i in sets['intervals'].indices:
             for s in sets['scenarios'].indices:
-                maximum_generation = results['num_commited'][u][i] * unit_capacity
-                power = results['power_generated'][(s, u)][i] 
+                maximum_generation = results['num_commited'][(s, u)][i] * unit_capacity
+                power = results['power_generated'][(s, u)][i]
                 raise_reserve_enabled = \
                     sum(results['reserve_enabled'][(s, u, r)][i] for r in raise_reserves)
 
@@ -57,7 +58,8 @@ def check_power_lt_capacity(sets, data, results):
         for i in sets['intervals'].indices:
             for s in sets['scenarios'].indices:
                 if results['power_generated'][(s, u)][i] > total_capacity:
-                    msg = 'Sanity Check: Unit', u, 'Interval', i, 'generating above its capacity', '(%f > %f)' % (round(results['power_generated'][(s, u)][i]), round(total_capacity))
+                    msg = 'Sanity Check: Unit', u, 'Interval', i, 'generating above capacity', \
+                        '(%f > %f)' % (results['power_generated'][(s, u)][i], total_capacity)
                     process_error_msg(msg)
                     errors_count += 1
 
@@ -73,7 +75,8 @@ def check_energy_charged_lt_charge_capacity(sets, data, results):
         for s in sets['scenarios'].indices:
             for i in sets['intervals'].indices:
                 if results['charge_after_losses'][(s, u)][i] > charge_capacity:
-                    msg = 'Sanity Check: Unit', u, 'Interval', i, 'charging above its charge capacity'
+                    msg = 'Sanity Check: Unit', u, 'Interval', i, \
+                        'charging above its charge capacity'
                     process_error_msg(msg)
                     errors_count += 1
 
@@ -110,22 +113,23 @@ def minimum_up_time_is_respected(sets, data, results, settings):
         prev_commit_status = 0
 
         for i in sets['intervals'].indices:
-            if i > i0 + minimum_up_time * settings['INTERVALS_PER_HOUR']:
-                current_commit_status = results['num_commited'].loc[i, u]
+            for s in sets['scenarios'].indices:
+                if i > i0 + minimum_up_time * settings['INTERVALS_PER_HOUR']:
+                    current_commit_status = results['num_commited'].loc[i, (s, u)]
 
-                if current_commit_status == 1:
-                    time_on += 1
+                    if current_commit_status == 1:
+                        time_on += 1
 
-                if current_commit_status == 0:
-                    if prev_commit_status == 1:
-                        if time_on < minimum_up_time * settings['INTERVALS_PER_HOUR']:
-                            msg = 'Min up time error for unit', u, 'interval', i
-                            process_error_msg(msg)
-                            errors_count = errors_count + 1
+                    if current_commit_status == 0:
+                        if prev_commit_status == 1:
+                            if time_on < minimum_up_time * settings['INTERVALS_PER_HOUR']:
+                                msg = 'Min up time error for unit', u, 'interval', i, 'scenario', s
+                                process_error_msg(msg)
+                                errors_count = errors_count + 1
 
-                    time_on = 0
+                        time_on = 0
 
-                prev_commit_status = current_commit_status
+                    prev_commit_status = current_commit_status
 
     return errors_count
 
@@ -141,22 +145,24 @@ def minimum_down_time_is_respected(sets, data, results, settings):
         prev_commit_status = 1
 
         for i in sets['intervals'].indices:
-            if i > i0 + minimum_down_time * settings['INTERVALS_PER_HOUR']:
-                current_commit_status = results['num_commited'].loc[i, u]
+            for s in sets['scenarios'].indices:
+                if i > i0 + minimum_down_time * settings['INTERVALS_PER_HOUR']:
+                    current_commit_status = results['num_commited'].loc[i, (s, u)]
 
-                if current_commit_status == 0:
-                    time_off += 1
+                    if current_commit_status == 0:
+                        time_off += 1
 
-                if current_commit_status == 1:
-                    if prev_commit_status == 0:
-                        if time_off < minimum_down_time * settings['INTERVALS_PER_HOUR']:
-                            msg = 'Min down time error for unit', u, 'interval', i
-                            process_error_msg(msg)
-                            errors_count = errors_count + 1
+                    if current_commit_status == 1:
+                        if prev_commit_status == 0:
+                            if time_off < minimum_down_time * settings['INTERVALS_PER_HOUR']:
+                                msg = 'Min down time error for unit', u, 'interval', i, \
+                                    'scenario', s,
+                                process_error_msg(msg)
+                                errors_count = errors_count + 1
 
-                    time_off = 0
+                        time_off = 0
 
-                prev_commit_status = current_commit_status
+                    prev_commit_status = current_commit_status
 
     return errors_count
 
@@ -215,7 +221,8 @@ def check_storage_continiuity(sets, data, results):
                         )
 
                 if net_flow.round(4) != 0:
-                    msg = 'Sanity Check: Unit', u, 'Interval', i, 'net storage flow is not zero:', net_flow
+                    msg = 'Sanity Check: Unit', u, 'Interval', i, \
+                        'net storage flow is not zero:', net_flow
                     process_error_msg(msg)
                     errors_count += 1
 
@@ -230,7 +237,8 @@ def check_stored_energy_lt_storage_capacity(sets, data, results):
         for s in sets['scenarios'].indices:
             for i in sets['intervals'].indices:
                 if results['energy_in_reservoir'][(s, u)][i] > storage_capacity_MWh:
-                    msg = 'Sanity Check: Unit', u, 'Interval', i, 'scenario', s, 'stored energy exceeds storage capacity'
+                    msg = 'Sanity Check: Unit', u, 'Interval', i, 'scenario', s, \
+                        'stored energy exceeds storage capacity'
                     process_error_msg(msg)
 
                     errors_count += 1
@@ -239,7 +247,6 @@ def check_stored_energy_lt_storage_capacity(sets, data, results):
 
 
 def check_reserve_lt_capability(sets, data, results):
-    import itertools
     import denkiuc.misc_functions as mf
 
     errors_count = 0
@@ -250,10 +257,13 @@ def check_reserve_lt_capability(sets, data, results):
 
             for i in sets['intervals'].indices:
                 for s in sets['scenarios'].indices:
-                    max_reserves = max_reserves_per_unit * results['num_commited'][u][i]
+                    max_reserves = max_reserves_per_unit * results['num_commited'][(s, u)][i]
 
                     if results['reserve_enabled'][(s, u, r)][i] > max_reserves:
-                        msg = 'Sanity Check: Unit', u, 'Interval', i, 'scenario', s, 'reserve', r, '\nReserve enablement exceeds reserve capability', '\nUnit committed: ', results['num_commited'][u][i], '\nMax reserve (total): ', max_reserves
+                        msg = 'Sanity Check: Unit', u, 'Interval', i, 'scenario', s, 'reserve', \
+                            r, '\nReserve enablement exceeds reserve capability', \
+                            '\nUnit committed: ', results['num_commited'][(s, u)][i], \
+                            '\nMax reserve (total): ', max_reserves
                         process_error_msg(msg)
 
                         errors_count += 1
@@ -267,8 +277,9 @@ def check_max_rocof(sets, results):
     for i in sets['intervals'].indices:
         max_rocof = results['max_rocof']['MaxRocof'][i]
         rocof_limit = results['max_rocof']['RocofLimit'][i]
-        if  max_rocof > rocof_limit:
-            msg = 'Sanity Check: Interval', i, ': Max RoCoF of', max_rocof, 'exceeds RoCoF limit of', rocof_limit
+        if max_rocof > rocof_limit:
+            msg = 'Sanity Check: Interval', i, ': Max RoCoF of', max_rocof, \
+                'exceeds RoCoF limit of', rocof_limit
             process_error_msg(msg)
 
             errors_count += 1
