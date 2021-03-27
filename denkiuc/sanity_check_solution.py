@@ -109,27 +109,28 @@ def minimum_up_time_is_respected(sets, data, results, settings):
 
     for u in sets['units_commit'].indices:
         minimum_up_time = data.units['MinUpTime_h'][u]
-        time_on = 0
-        prev_commit_status = 0
+        for s in sets['scenarios'].indices:
+            time_on = 0
+            prev_commit_status = 0
+            for i in sets['intervals'].indices:
+                current_commit_status = results['num_commited'].loc[i, (s, u)]
 
-        for i in sets['intervals'].indices:
-            for s in sets['scenarios'].indices:
-                if i > i0 + minimum_up_time * settings['INTERVALS_PER_HOUR']:
-                    current_commit_status = results['num_commited'].loc[i, (s, u)]
+                if current_commit_status == 1:
+                    time_on += 1
 
-                    if current_commit_status == 1:
-                        time_on += 1
-
-                    if current_commit_status == 0:
-                        if prev_commit_status == 1:
+                if current_commit_status == 0:
+                    if prev_commit_status == 1:
+                        if i > i0 + minimum_up_time + settings['INTERVALS_PER_HOUR']:
                             if time_on < minimum_up_time * settings['INTERVALS_PER_HOUR']:
-                                msg = 'Min up time error for unit', u, 'interval', i, 'scenario', s
+                                msg = 'Min up time error for unit', u, 'interval', i, 'scenario', \
+                                    s, 'time on is', time_on, 'periods', 'min_up_time is', \
+                                    minimum_up_time * settings['INTERVALS_PER_HOUR'], 'periods'
                                 process_error_msg(msg)
                                 errors_count = errors_count + 1
 
-                        time_on = 0
+                    time_on = 0
 
-                    prev_commit_status = current_commit_status
+                prev_commit_status = current_commit_status
 
     return errors_count
 

@@ -79,7 +79,7 @@ class ucModel():
         print('Begin solving the model')
         self.mod.solve(pp.PULP_CBC_CMD(timeLimit=120,
                                        threads=0,
-                                       msg=0,
+                                       msg=1,
                                        gapRel=0))
 
         self.optimality_status = pp.LpStatus[self.mod.status]
