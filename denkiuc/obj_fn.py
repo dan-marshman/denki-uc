@@ -39,8 +39,10 @@ def build_obj_fuel_term(sets, data, vars, settings):
 def build_obj_start_cost_term(sets, data, vars):
     obj_start_ups = \
         pp.lpSum(
-                 [vars['num_starting_up'].var[(i, u)] * data.units['StartCost_$'][u]
-                  for i in sets['intervals'].indices for u in sets['units_commit'].indices]
+                 [vars['num_starting_up'].var[(i, s, u)] * data.units['StartCost_$'][u]
+                  for i in sets['intervals'].indices
+                  for s in sets['scenarios'].indices
+                  for u in sets['units_commit'].indices]
                 )
 
     return obj_start_ups

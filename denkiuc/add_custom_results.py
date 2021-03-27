@@ -40,10 +40,13 @@ def add_total_charge_load(results, new_results):
 
 def add_inertia_dispatch(data, results):
     inertia_dispatch = results['num_commited'].copy()
+    print(inertia_dispatch.head())
+    print(type(inertia_dispatch))
 
-    for u in inertia_dispatch.columns:
-        inertia_dispatch[u] = \
-            inertia_dispatch[u] * data.units['InertialConst_s'][u] * data.units['Capacity_MW'][u]
+    for col in inertia_dispatch.columns:
+        u = col[1]
+        inertia_dispatch.loc[:, col] = \
+            inertia_dispatch.loc[:, col] * data.units['InertialConst_s'][u] * data.units['Capacity_MW'][u]
 
     inertia_dispatch['SystemInertia'] = inertia_dispatch.sum(axis=1)
 
@@ -69,11 +72,11 @@ def add_maximum_rocof(data, new_results, settings):
 
             rocof_in_units_failure = \
                 contingency_size * settings['SYSTEM_FREQUENCY'] / (2 * available_inertia)
-            
+
             if rocof_in_units_failure > max_rocof:
                 max_rocof = rocof_in_units_failure
                 responsible_unit = u
-       
+
         max_rocof_df.loc[i, 'MaxRocof'] = max_rocof
         max_rocof_df.loc[i, 'ResponsibleUnit'] = responsible_unit
 

@@ -7,7 +7,7 @@ def make_all_variables(sets):
     intervals_units = [sets['intervals'], sets['scenarios'], sets['units']]
     vars['power_generated'] = dkVariable('power_generated', 'MW', intervals_units)
 
-    intervals_units_commit = [sets['intervals'], sets['units_commit']]
+    intervals_units_commit = [sets['intervals'], sets['scenarios'], sets['units_commit']]
     vars['num_commited'] = \
         dkVariable('num_commited', 'NumUnits', intervals_units_commit, 'Integer')
     vars['inertia_provided'] = \

@@ -44,12 +44,11 @@ class dkSet():
     def __init__(self, name, indices, master_set=None):
         self.name = name
         self.indices = indices
+        self.subsets = list()
 
         if master_set is not None:
             self.validate_set(master_set)
             master_set.append_subset(self)
-        elif master_set is None:
-            self.subsets = list()
 
     def validate_set(self, master_set):
         for ind in self.indices:
@@ -81,6 +80,12 @@ def load_unit_subsets(data, sets):
     sets['units_commit'] = dkSet('units_commit', units_commit, sets['units'])
     sets['units_storage'] = dkSet('units_storage', units_storage, sets['units'])
     sets['units_variable'] = dkSet('units_variable', units_variable, sets['units'])
+
+    units_inflexible = create_unit_subsets('Inflexible', data, sets['units_commit'])
+    units_flexible = create_unit_subsets('Flexible', data, sets['units_commit'])
+
+    sets['units_inflexible'] = dkSet('units_inflexible', units_inflexible, sets['units_commit'])
+    sets['units_flexible'] = dkSet('units_flexible', units_flexible, sets['units_commit'])
 
     return sets
 
@@ -120,6 +125,7 @@ def load_interval_subsets(settings, sets):
 def create_unit_subsets(subset, data, units):
     filename = 'technology_categories.csv'
     path_to_db_tech_cat_file = os.path.join(data.path_to_inputs, filename)
+
     if os.path.exists(path_to_db_tech_cat_file):
         tech_categories_df = pd.read_csv(path_to_db_tech_cat_file, index_col=0)
     else:

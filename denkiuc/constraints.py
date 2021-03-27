@@ -69,27 +69,45 @@ def commitment_continuity(sets, data, vars, mod):
 
         for u in sets['units_commit'].indices:
             if i == min(sets['intervals'].indices):
-                label = 'commitment_continuity_%s_int_%s' % (u, i)
+                for s in sets['scenarios'].indices:
+                    label = 'commitment_continuity_%s_int_%s' % (u, i)
 
+                    condition = \
+                        (
+                         vars['num_commited'].var[(i, s, u)]
+                         ==
+                         data.initial_state['NumCommited'][u]
+                         + vars['num_starting_up'].var[(i, s, u)]
+                         - vars['num_shutting_down'].var[(i, s, u)]
+                         )
+
+                if i > min(sets['intervals'].indices):
+                    label = 'commitment_continuity_%s_int_%s' % (u, i)
+
+                    condition = \
+                        (
+                         vars['num_commited'].var[(i, s, u)]
+                         ==
+                         vars['num_commited'].var[(i-1, s, u)]
+                         + vars['num_starting_up'].var[(i, s, u)]
+                         - vars['num_shutting_down'].var[(i, s, u)]
+                         )
+
+                mod += condition, label
+
+    return mod
+
+
+def inflexible_commitment(sets, data, vars, mod):
+    for i in sets['intervals'].indices:
+        for s in sets['scenarios'].indices:
+            for u in sets['units_inflexible'].indices:
+                label = 'inflexible_commit_same_across_scenarios_u_%s_i_%s_s_%s' % (u, s, i)
                 condition = \
                     (
-                     vars['num_commited'].var[(i, u)]
+                     vars['num_commited'].var[(i, s, u)]
                      ==
-                     data.initial_state['NumCommited'][u]
-                     + vars['num_starting_up'].var[(i, u)]
-                     - vars['num_shutting_down'].var[(i, u)]
-                     )
-
-            if i > min(sets['intervals'].indices):
-                label = 'commitment_continuity_%s_int_%s' % (u, i)
-
-                condition = \
-                    (
-                     vars['num_commited'].var[(i, u)]
-                     ==
-                     vars['num_commited'].var[(i-1, u)]
-                     + vars['num_starting_up'].var[(i, u)]
-                     - vars['num_shutting_down'].var[(i, u)]
+                     vars['num_committed_all_scenarios'].var[(i, u)]
                      )
 
             mod += condition, label
@@ -99,15 +117,16 @@ def commitment_continuity(sets, data, vars, mod):
 
 def max_units_committed(sets, data, vars, mod):
     for i in sets['intervals'].indices:
-        for u in sets['units_commit'].indices:
-            label = 'num_units_commit_lt_exist_%s_int_%s' % (u, i)
+        for s in sets['scenarios'].indices:
+            for u in sets['units_commit'].indices:
+                label = 'num_units_commit_lt_exist_%s_int_%s' % (u, i)
 
-            condition = \
-                (vars['num_commited'].var[(i, u)]
-                 <=
-                 data.units['NoUnits'][u])
+                condition = \
+                    (vars['num_commited'].var[(i, s, u)]
+                     <=
+                     data.units['NoUnits'][u])
 
-            mod += condition, label
+                mod += condition, label
 
     return mod
 
@@ -123,7 +142,7 @@ def power_lt_committed_capacity(sets, data, vars, mod):
                      + pp.lpSum(vars['reserve_enabled'].var[(i, s, u, r)]
                                 for r in sets['raise_reserves'].indices)
                      <=
-                     vars['num_commited'].var[(i, u)] * data.units['Capacity_MW'][u])
+                     vars['num_commited'].var[(i, s, u)] * data.units['Capacity_MW'][u])
 
                 mod += condition, label
     return mod
@@ -140,7 +159,7 @@ def power_gt_min_stable_gen(sets, data, vars, mod):
                      - pp.lpSum(vars['reserve_enabled'].var[(i, s, u, r)]
                                 for r in sets['lower_reserves'].indices)
                      >=
-                     vars['num_commited'].var[(i, u)]
+                     vars['num_commited'].var[(i, s, u)]
                      * data.units['Capacity_MW'][u]
                      * data.units['MinGen'][u])
 
@@ -175,14 +194,16 @@ def minimum_up_time(sets, data, vars, mod, settings):
         for u in sets['units_commit'].indices:
             unit_up_time = data.units['MinUpTime_h'][u]
             i_low = 1 + max(i0 - 1, i - settings['INTERVALS_PER_HOUR'] * unit_up_time)
-            label = 'minimum_up_time_i_%d_u_%s' % (i, u)
-            condition = (
-                vars['num_commited'].var[(i, u)]
-                >=
-                pp.lpSum([vars['num_starting_up'].var[(i2, u)] for i2 in range(i_low, i_high)])
-                )
+            for s in sets['scenarios'].indices:
+                label = 'minimum_up_time_i_%d_u_%s' % (i, u)
+                condition = (
+                    vars['num_commited'].var[(i, s, u)]
+                    >=
+                    pp.lpSum([vars['num_starting_up'].var[(i2, s, u)]
+                              for i2 in range(i_low, i_high)])
+                    )
 
-            mod += condition, label
+                mod += condition, label
 
     return mod
 
@@ -199,14 +220,16 @@ def minimum_down_time(sets, data, vars, mod, settings):
                 pass
 
             i_low = 1 + max(i0 - 1, i - settings['INTERVALS_PER_HOUR'] * unit_down_time)
-            label = 'minimum_down_time_i_%d_u_%s' % (i, u)
-            condition = (
-                data.units['NoUnits'][u] - vars['num_commited'].var[(i, u)]
-                >=
-                pp.lpSum([vars['num_shutting_down'].var[(i2, u)] for i2 in range(i_low, i_high)])
-                )
+            for s in sets['scenarios'].indices:
+                label = 'minimum_down_time_i_%d_u_%s' % (i, u)
+                condition = (
+                    data.units['NoUnits'][u] - vars['num_commited'].var[(i, s, u)]
+                    >=
+                    pp.lpSum([vars['num_shutting_down'].var[(i2, s, u)]
+                              for i2 in range(i_low, i_high)])
+                    )
 
-            mod += condition, label
+                mod += condition, label
 
     return mod
 
@@ -297,7 +320,7 @@ def maximum_reserve_enablement(sets, data, vars, mod):
                         condition = (
                             vars['reserve_enabled'].var[(i, s, u, r)]
                             <=
-                            vars['num_commited'].var[(i, u)] * max_reserves_per_unit
+                            vars['num_commited'].var[(i, s, u)] * max_reserves_per_unit
                             )
                         mod += condition, label
 
@@ -333,58 +356,61 @@ def limit_rocof(sets, data, vars, mod, settings):
         return condition
 
     for i in sets['intervals'].indices:
-        system_inertia = \
-            pp.lpSum(vars['num_commited'].var[(i, u2)]
-                     * data.units['InertialConst_s'][u2]
-                     * data.units['Capacity_MW'][u2]
-                     for u2 in sets['units_commit'].indices)
+        for s in sets['scenarios'].indices:
+            system_inertia = \
+                pp.lpSum(vars['num_commited'].var[(i, s, u2)]
+                         * data.units['InertialConst_s'][u2]
+                         * data.units['Capacity_MW'][u2]
+                         for u2 in sets['units_commit'].indices)
 
-        for u in sets['units'].indices:
-            label = 'limit_rocof_%s_int_%d_s' % (u, i)
+            for u in sets['units'].indices:
+                label = 'limit_rocof_%s_int_%d_s' % (u, i)
 
-            if u in sets['units_commit'].indices:
-                units_inertia = \
-                    vars['num_commited'].var[(i, u)] \
-                    * data.units['InertialConst_s'][u] \
-                    * data.units['Capacity_MW'][u]
+                if u in sets['units_commit'].indices:
+                    units_inertia = \
+                        vars['num_commited'].var[(i, s, u)] \
+                        * data.units['InertialConst_s'][u] \
+                        * data.units['Capacity_MW'][u]
 
-                contingency_size = vars['is_committed'].var[(i, u)] * data.units['Capacity_MW'][u]
+                    contingency_size = \
+                        vars['is_committed'].var[(i, s, u)] * data.units['Capacity_MW'][u]
 
-            elif u in sets['units_variable'].indices:
-                for s in sets['scenarios'].indices:
+                elif u in sets['units_variable'].indices:
+                    for s in sets['scenarios'].indices:
+                        units_inertia = 0
+                        technology = data.units['Technology'][u]
+                        region = data.units['Region'][u]
+                        scenario = data.units['Region'][u]
+                        trace = mf.get_resource_trace(s, region, technology, data)
+                        contingency_size = trace[i] * data.units['Capacity_MW'][u]
+
+                elif u in sets['units_storage'].indices:
                     units_inertia = 0
-                    technology = data.units['Technology'][u]
-                    region = data.units['Region'][u]
-                    scenario = data.units['Region'][u]
-                    trace = mf.get_resource_trace(s, region, technology, data)
-                    contingency_size = trace[i] * data.units['Capacity_MW'][u]
+                    contingency_size = data.units['Capacity_MW'][u]
 
-            elif u in sets['units_storage'].indices:
-                units_inertia = 0
-                contingency_size = data.units['Capacity_MW'][u]
+                available_inertia = system_inertia - units_inertia
 
-            available_inertia = system_inertia - units_inertia
+                condition = define_rocof_condition(settings, contingency_size, available_inertia)
 
-            condition = define_rocof_condition(settings, contingency_size, available_inertia)
-
-            mod += condition, label
+                mod += condition, label
 
     return mod
 
 
 def define_is_committed(sets, data, vars, mod):
     for i in sets['intervals'].indices:
-        for u in sets['units_commit'].indices:
-            label = 'define_is_committed_%s_int_%d_s' % (u, i)
+        for s in sets['scenarios'].indices:
+            for u in sets['units_commit'].indices:
+                label = 'define_is_committed_%s_int_%d_s' % (u, i)
 
-            condition = \
-                (
-                 vars['num_commited'].var[(i, u)]
-                 <=
-                 vars['is_committed'].var[(i, u)] * data.units['NoUnits'][u]
-                )
+                condition = \
+                    (
+                     vars['num_commited'].var[(i, s, u)]
+                     <=
+                     vars['is_committed'].var[(i, s, u)] * data.units['NoUnits'][u]
+                    )
 
-            mod += condition, label
+                mod += condition, label
 
     return mod
 
