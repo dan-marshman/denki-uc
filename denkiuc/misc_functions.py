@@ -10,7 +10,7 @@ def set_logger_path(path_to_outputs):
         logging.basicConfig(filename=logger_path, level=logging.WARNING)
 
 
-def make_outputs_folder(path_to_outputs):
+def make_folder(path_to_outputs):
     if os.path.exists(path_to_outputs):
         shutil.rmtree(path_to_outputs)
 

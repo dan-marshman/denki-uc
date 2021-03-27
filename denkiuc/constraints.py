@@ -1,5 +1,4 @@
 import pulp as pp
-import numpy as np
 
 
 def supply_eq_demand(sets, data, vars, mod):

@@ -34,6 +34,7 @@ class ucModel():
             self.data.validate_initial_state_data(self.sets)
 
         self.data.add_default_values(self.sets)
+        self.data.replace_reserve_requirement_index()
 
         self.vars = va.make_all_variables(self.sets)
 
@@ -44,7 +45,7 @@ class ucModel():
     def setup(self):
         self.settings = ld.load_settings(self.path_to_inputs)
         self.path_to_outputs = os.path.join(self.settings['OUTPUTS_PATH'], self.name)
-        mf.make_outputs_folder(self.path_to_outputs)
+        mf.make_folder(self.path_to_outputs)
         mf.set_logger_path(self.path_to_outputs)
         self.results = dict()
 
@@ -85,8 +86,8 @@ class ucModel():
         print('Model status: %s' % self.optimality_status)
         exit_if_infeasible(self.optimality_status)
 
-        self.opt_obj_fn_value = self.mod.objective.value()
-        print('Objective function = %f' % self.opt_obj_fn_value)
+        self.opt_fn_value = self.mod.objective.value()
+        print('Objective function = %f' % self.opt_fn_value)
 
     def store_results(self):
         import denkiuc.add_custom_results as acs

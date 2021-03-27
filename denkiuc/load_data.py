@@ -3,6 +3,16 @@ import pandas as pd
 import logging
 
 
+def load_default_file(filename):
+    module_path = os.path.split(os.path.abspath(__file__))[0]
+    default_files_path = os.path.join(module_path, 'default_files')
+    file_path = os.path.join(default_files_path, filename)
+
+    data = pd.read_csv(file_path, index_col=0)
+
+    return data
+
+
 def load_settings(path_to_inputs):
     import csv
 
@@ -108,9 +118,12 @@ def load_interval_subsets(settings, sets):
 
 
 def create_unit_subsets(subset, data, units):
-    module_path = os.path.split(os.path.abspath(__file__))[0]
-    path_to_tech_categories_file = os.path.join(module_path, 'technology_categories.csv')
-    tech_categories_df = pd.read_csv(path_to_tech_categories_file, index_col=0)
+    filename = 'technology_categories.csv'
+    path_to_db_tech_cat_file = os.path.join(data.path_to_inputs, filename)
+    if os.path.exists(path_to_db_tech_cat_file):
+        tech_categories_df = pd.read_csv(path_to_db_tech_cat_file, index_col=0)
+    else:
+        tech_categories_df = load_default_file(filename)
 
     subset_list = []
 
@@ -133,17 +146,19 @@ class Data:
     def __init__(self, path_to_inputs):
         self.missing_values = dict()
 
-        self.load_traces(path_to_inputs)
-        self.load_ancillary_service_requirements(path_to_inputs)
-        self.load_unit_data(path_to_inputs)
-        self.load_initial_state(path_to_inputs)
+        self.path_to_inputs = path_to_inputs
+        self.load_traces()
+        self.load_ancillary_service_requirements()
+        self.load_unit_data()
+        self.load_initial_state()
+        self.load_arma_values()
 
-    def load_traces(self, path_to_inputs):
+    def load_traces(self):
         self.orig_traces = dict()
         trace_files = ['demand', 'wind', 'solarPV']
 
         for file in trace_files:
-            file_path = os.path.join(path_to_inputs, file + '.csv')
+            file_path = os.path.join(self.path_to_inputs, file + '.csv')
             if os.path.exists(file_path):
                 df = pd.read_csv(file_path, index_col=0)
                 self.orig_traces[file] = df
@@ -151,8 +166,8 @@ class Data:
                 print("Looking for trace file - doesn't exist", file_path)
                 exit()
 
-    def load_unit_data(self, path_to_inputs):
-        unit_data_path = os.path.join(path_to_inputs, 'unit_data.csv')
+    def load_unit_data(self):
+        unit_data_path = os.path.join(self.path_to_inputs, 'unit_data.csv')
 
         if os.path.exists(unit_data_path):
             self.units = pd.read_csv(unit_data_path, index_col=0)
@@ -161,8 +176,8 @@ class Data:
             print("Looking for unit data file - doesn't exist", unit_data_path)
             exit()
 
-    def load_initial_state(self, path_to_inputs):
-        initial_state_path = os.path.join(path_to_inputs, 'initial_state.csv')
+    def load_initial_state(self):
+        initial_state_path = os.path.join(self.path_to_inputs, 'initial_state.csv')
 
         if os.path.exists(initial_state_path):
             self.initial_state = pd.read_csv(initial_state_path, index_col=0)
@@ -214,6 +229,14 @@ class Data:
                 print('Unit %s has initial storage fraction greater than 1' % u)
                 exit()
 
+    def load_arma_values(self):
+        filename = 'arma_values.csv'
+        path_to_db_arma_file = os.path.join(self.path_to_inputs, filename)
+        if os.path.exists(path_to_db_arma_file):
+            self.arma_vals_df = pd.read_csv(path_to_db_arma_file, index_col=0)
+        else:
+            self.arma_vals_df = load_default_file(filename)
+
     def add_arma_scenarios(self, scenarios, random_seed):
         import numpy as np
 
@@ -250,10 +273,6 @@ class Data:
 
         self.traces = dict()
 
-        module_path = os.path.split(os.path.abspath(__file__))[0]
-        path_to_arma_vals = os.path.join(module_path, 'arma_values.csv')
-        arma_vals_df = pd.read_csv(path_to_arma_vals, index_col=0)
-
         for trace_name, trace in self.orig_traces.items():
             orig_df = self.orig_traces[trace_name]
 
@@ -261,9 +280,9 @@ class Data:
             df_cols = df_cols.set_names(['Scenario', 'Region'])
             new_trace = pd.DataFrame(index=orig_df.index, columns=df_cols)
 
-            arma_alpha = arma_vals_df[trace_name]['alpha']
-            arma_beta = arma_vals_df[trace_name]['beta']
-            arma_sigma = arma_vals_df[trace_name]['sigma']
+            arma_alpha = self.arma_vals_df[trace_name]['alpha']
+            arma_beta = self.arma_vals_df[trace_name]['beta']
+            arma_sigma = self.arma_vals_df[trace_name]['sigma']
 
             for region in orig_df.columns:
                 new_trace.loc[:, (0, region)] = orig_df[region]
@@ -273,8 +292,8 @@ class Data:
 
             self.traces[trace_name] = new_trace
 
-    def load_ancillary_service_requirements(self, path_to_inputs):
-        reserve_requirement_path = os.path.join(path_to_inputs, 'reserve_requirement.csv')
+    def load_ancillary_service_requirements(self):
+        reserve_requirement_path = os.path.join(self.path_to_inputs, 'reserve_requirement.csv')
 
         if os.path.exists(reserve_requirement_path):
             self.reserve_requirement = pd.read_csv(reserve_requirement_path, index_col=0)
@@ -288,3 +307,7 @@ class Data:
         if self.missing_values['reserve_requirement']:
             self.reserve_requirement = \
                 pd.DataFrame(0, index=sets['intervals'].indices, columns=sets['reserves'])
+
+    def replace_reserve_requirement_index(self):
+        first_trace = list(self.orig_traces.keys())[0]
+        self.reserve_requirement.index = self.orig_traces[first_trace].index
