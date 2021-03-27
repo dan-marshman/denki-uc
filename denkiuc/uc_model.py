@@ -108,7 +108,11 @@ class ucModel():
             if self.settings['WRITE_RESULTS_WITHOUT_LOOK_AHEAD']:
                 dkvar.write_to_file(path_to_results, removed_la=True)
 
-        self.results = acs.add_custom_results(self.data, self.results, path_to_results, self.settings)
+        self.results = acs.add_custom_results(self.data,
+                                              self.results,
+                                              path_to_results,
+                                              self.settings,
+                                              self.sets)
 
     def sanity_check_solution(self):
         import denkiuc.sanity_check_solution as scs

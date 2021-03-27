@@ -2,7 +2,7 @@ import os
 import pandas as pd
 
 
-def add_custom_results(data, results, results_path, settings):
+def add_custom_results(data, results, results_path, settings, sets):
     new_results = dict()
 
     new_results['charge_losses'] = add_charge_losses(data, results)
@@ -10,6 +10,7 @@ def add_custom_results(data, results, results_path, settings):
     new_results['dispatch'] = add_dispatch_result(data, results, new_results)
     new_results['inertia_dispatch'] = add_inertia_dispatch(data, results)
     new_results['max_rocof'] = add_maximum_rocof(data, new_results, settings)
+    new_results['final_state'] = add_final_state(data, results, sets)
 
     for name, result in new_results.items():
         # result = result.round(3)
@@ -111,3 +112,26 @@ def add_dispatch_result(data, results, new_results):
     dispatch = add_level_and_join(dispatch, unserved_df, 'unserved')
 
     return dispatch
+
+
+def add_final_state(data, results, sets):
+    df_cols = ['PowerGeneration_MW', 'NumCommited', 'StorageLevel_frac']
+    final_state = pd.DataFrame(columns=df_cols, index=sets['units'].indices)
+
+    final_interval = max(sets['main_intervals'].indices)
+    first_scenario = min(sets['scenarios'].indices)
+
+    for u in sets['units'].indices:
+        final_state.loc[u, 'PowerGeneration_MW'] = \
+            results['power_generated'][(first_scenario, u)][final_interval]
+
+    for u in sets['units_commit'].indices:
+        final_state.loc[u, 'NumCommited'] = \
+            results['num_commited'][(first_scenario, u)][final_interval]
+
+    for u in sets['units_storage'].indices:
+        final_state.loc[u, 'StorageLevel_frac'] = \
+            results['energy_in_reservoir'][(first_scenario, u)][final_interval] \
+            / (data.units['Capacity_MW'][u] * data.units['StorageCap_h'][u])
+
+    return final_state
