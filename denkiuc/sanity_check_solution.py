@@ -28,7 +28,7 @@ def check_power_gt_min_stable_gen(sets, data, results):
     return errors_count
 
 
-def check_power_raise_reserves_lt_committed_capacity(sets, data, results):
+def check_power_raise_reserves_lt_commit_cap(sets, data, results):
     errors_count = 0
     raise_reserves = sets['raise_reserves'].indices
 
@@ -293,7 +293,7 @@ def check_max_rocof(sets, results):
 
 def run_sanity_checks(sets, data, results, settings):
     check_power_lt_capacity(sets, data, results)
-    check_power_raise_reserves_lt_committed_capacity(sets, data, results)
+    check_power_raise_reserves_lt_commit_cap(sets, data, results)
     check_power_gt_min_stable_gen(sets, data, results)
     total_gen_equals_demand(sets, results)
     check_energy_charged_lt_charge_capacity(sets, data, results)

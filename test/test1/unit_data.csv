@@ -1,8 +1,8 @@
-Unit,NoUnits,Station,Node,Region,Capacity_MW,FuelCost_$pGJ,ThermalEfficiency,VOM_$pMWh,StartCost_$,InertialConst_s,SystemStrength,MinUpTime_h,MinDownTime_h,MinGen,RTEfficiency,StorageCap_h,Technology,InitialStorage_pct,PrimaryReserves_pct
-Coal1,1,Coal,VIC_RRN,VIC,510,3,0.5,2,300,5,1,12,12,0.4,0,0,Coal,0,0.1
-Coal2,1,Coal,VIC_RRN,VIC,500,3.1,0.5,2,300,5,1,12,12,0.4,0,0,Coal,0,0.1
-Gas1,1,Gas,VIC_RRN,VIC,300,5,0.55,5,300,5,1,6,4,0.4,0,0,Gas,0,0.1
-Gas2,1,Gas,VIC_RRN,VIC,300,10,0.55,5,300,5,1,6,4,0.4,0,0,Gas,0,0.1
-SolarPV1,1,VicSolarPV,VIC_RRN,VIC,600,0,1,2,0,0,0,0,0,0,0,0,SolarPV,0,0
-Battery1,1,VicBattery,VIC_RRN,VIC,50,0,1,1,0,0,0,0,0,0,0.85,3,Battery,0.5,0
-Wind1,1,VicWind,VIC_RRN,VIC,600,0,1,3,0,0,0,0,0,0,0,0,Wind,0,0
+Unit,NoUnits,Station,Node,Region,Capacity_MW,FuelCost_$pGJ,ThermalEfficiency,VOM_$pMWh,StartCost_$,InertialConst_s,SystemStrength,MinUpTime_h,MinDownTime_h,MinGen,RTEfficiency,StorageCap_h,Technology,InitialStorage_pct,PrimaryReserves_pct,SecondaryReserves_pct
+Coal1,1,Coal,VIC_RRN,VIC,510,3,0.5,2,300,5,1,12,12,0.4,0,0,Coal,0,0.1,0.1
+Coal2,1,Coal,VIC_RRN,VIC,500,3.1,0.5,2,300,5,1,12,12,0.4,0,0,Coal,0,0.1,0.1
+Gas1,1,Gas,VIC_RRN,VIC,300,5,0.55,5,300,5,1,6,4,0.4,0,0,Gas,0,0.1,0.1
+Gas2,1,Gas,VIC_RRN,VIC,300,10,0.55,5,300,5,1,6,4,0.4,0,0,Gas,0,0.1,0.1
+SolarPV1,1,VicSolarPV,VIC_RRN,VIC,600,0,1,2,0,0,0,0,0,0,0,0,SolarPV,0,0,0
+Battery1,1,VicBattery,VIC_RRN,VIC,50,0,1,1,0,0,0,0,0,0,0.85,3,Battery,0.5,0,0
+Wind1,1,VicWind,VIC_RRN,VIC,600,0,1,3,0,0,0,0,0,0,0,0,Wind,0,0,0

@@ -4,89 +4,106 @@ import unittest
 import denkiuc.sanity_check_solution as scs
 
 test1_path = os.path.join(uc.path_to_tests, 'test1')
-test_model = uc.ucModel('test1', test1_path)
-test_model.data.units.loc['Coal1', 'NoUnits'] = 5
-test_model.solve()
+tM = uc.ucModel('test1', test1_path)
+tM.data.units.loc['Coal1', 'NoUnits'] = 5
+tM.solve()
 
 
 class economic_dispatch_sanity_checks(unittest.TestCase):
     def test_power_lt_capacity_no_error(self):
-        for u in test_model.sets['units'].indices:
+        for u in tM.sets['units'].indices:
             units_capacity = \
-                test_model.data.units['Capacity_MW'][u] * test_model.data.units['NoUnits'][u]
+                tM.data.units['Capacity_MW'][u] * tM.data.units['NoUnits'][u]
 
-            for i in test_model.sets['intervals'].indices:
-                for s in test_model.sets['scenarios'].indices:
+            for i in tM.sets['intervals'].indices:
+                for s in tM.sets['scenarios'].indices:
 
-                    test_model.results['power_generated'].loc[i, (s, u)] = \
+                    tM.results['power_generated'].loc[i, (s, u)] = \
                         units_capacity * 1
 
         test_result = \
-            scs.check_power_lt_capacity(test_model.sets, test_model.data, test_model.results)
+            scs.check_power_lt_capacity(tM.sets, tM.data, tM.results)
 
         self.assertEqual(test_result, 0)
 
     def test_power_lt_capacity_error(self):
         counter = 0
 
-        for u in test_model.sets['units'].indices:
+        for u in tM.sets['units'].indices:
             units_capacity = \
-                test_model.data.units['Capacity_MW'][u] * test_model.data.units['NoUnits'][u]
+                tM.data.units['Capacity_MW'][u] * tM.data.units['NoUnits'][u]
 
-            for i in test_model.sets['intervals'].indices:
-                for s in test_model.sets['scenarios'].indices:
+            for i in tM.sets['intervals'].indices:
+                for s in tM.sets['scenarios'].indices:
                     counter += 1
-                    test_model.results['power_generated'].loc[i, (s, u)] = \
+                    tM.results['power_generated'].loc[i, (s, u)] = \
                         units_capacity * 1.0000001
 
         test_result = \
-            scs.check_power_lt_capacity(test_model.sets, test_model.data, test_model.results)
+            scs.check_power_lt_capacity(tM.sets, tM.data, tM.results)
 
         self.assertEqual(test_result, counter)
 
     def test_energy_charged_lt_charge_capacity_no_error(self):
-        for u in test_model.sets['units_storage'].indices:
+        for u in tM.sets['units_storage'].indices:
             units_charge_capacity = \
-                test_model.data.units['Capacity_MW'][u] * test_model.data.units['NoUnits'][u] \
-                * test_model.data.units['RTEfficiency'][u]
+                tM.data.units['Capacity_MW'][u] * tM.data.units['NoUnits'][u] \
+                * tM.data.units['RTEfficiency'][u]
 
-            for i in test_model.sets['intervals'].indices:
-                for s in test_model.sets['scenarios'].indices:
-                    test_model.results['charge_after_losses'].loc[i, (s, u)] = \
+            for i in tM.sets['intervals'].indices:
+                for s in tM.sets['scenarios'].indices:
+                    tM.results['charge_after_losses'].loc[i, (s, u)] = \
                         units_charge_capacity * 1
 
-        test_result = scs.check_energy_charged_lt_charge_capacity(test_model.sets,
-                                                                  test_model.data,
-                                                                  test_model.results)
+        test_result = scs.check_energy_charged_lt_charge_capacity(tM.sets,
+                                                                  tM.data,
+                                                                  tM.results)
 
         self.assertEqual(test_result, 0)
 
     def test_energy_charged_lt_charge_capacity_error(self):
         counter = 0
 
-        for u in test_model.sets['units_storage'].indices:
+        for u in tM.sets['units_storage'].indices:
             units_charge_capacity = \
-                test_model.data.units['Capacity_MW'][u] * test_model.data.units['NoUnits'][u] \
-                * test_model.data.units['RTEfficiency'][u]
+                tM.data.units['Capacity_MW'][u] * tM.data.units['NoUnits'][u] \
+                * tM.data.units['RTEfficiency'][u]
 
-            for i in test_model.sets['intervals'].indices:
-                for s in test_model.sets['scenarios'].indices:
+            for i in tM.sets['intervals'].indices:
+                for s in tM.sets['scenarios'].indices:
                     counter += 1
-                    test_model.results['charge_after_losses'].loc[i, (s, u)] = \
+                    tM.results['charge_after_losses'].loc[i, (s, u)] = \
                         units_charge_capacity * 1.0000001
 
-        print(test_model.results['charge_after_losses'].head())
+        print(tM.results['charge_after_losses'].head())
 
-        test_result = scs.check_energy_charged_lt_charge_capacity(test_model.sets,
-                                                                  test_model.data,
-                                                                  test_model.results)
+        test_result = scs.check_energy_charged_lt_charge_capacity(tM.sets,
+                                                                  tM.data,
+                                                                  tM.results)
 
         self.assertEqual(test_result, counter)
 
 
 class unit_commitment_sanity_checks(unittest.TestCase):
     def test_power_raise_reserves_lt_capacity_no_error(self):
-        pass
+        val = 0.0001
+
+        for u in tM.sets['units'].indices:
+            units_capacity = \
+                tM.data.units['Capacity_MW'][u] * tM.data.units['NoUnits'][u]
+
+            for i in tM.sets['intervals'].indices:
+                for s in tM.sets['scenarios'].indices:
+                    tM.results['power_generated'].loc[i, (s, u)] = units_capacity * 1
+                    for r in tM.sets['raise_reserves'].indices:
+                        tM.results['reserve_enabled'].loc[i, (s, u, r)] += val
+                        tM.results['power_generated'].loc[i, (s, u)] += val
+
+        test_result = \
+            scs.check_power_raise_reserves_lt_commit_cap(tM.sets, tM.data, tM.results)
+        print(test_result)
+
+        self.assertEqual(test_result, 0)
 
 
 if __name__ == '__main__':
