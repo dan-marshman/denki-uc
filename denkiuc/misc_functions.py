@@ -22,6 +22,14 @@ def get_max_reserves_per_unit(unit, reserve, unit_data):
         max_reserves_per_unit = \
             unit_data['PrimaryReserves_pct'][unit] * unit_data['Capacity_MW'][unit]
 
+    if reserve in ['SecondaryRaise', 'SecondaryLower']:
+        max_reserves_per_unit = \
+            unit_data['SecondaryReserves_pct'][unit] * unit_data['Capacity_MW'][unit]
+
+    if reserve in ['TertiaryRaise', 'TertiaryLower']:
+        max_reserves_per_unit = \
+            unit_data['TertiaryReserves_pct'][unit] * unit_data['Capacity_MW'][unit]
+
     return max_reserves_per_unit
 
 

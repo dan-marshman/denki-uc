@@ -1,6 +1,7 @@
 def process_error_msg(msg):
     print_error_msg = True
     if print_error_msg is True:
+        print()
         print(msg)
     else:
         pass
@@ -19,7 +20,7 @@ def check_power_gt_min_stable_gen(sets, data, results):
                 if results['num_commited'][(s, u)][i] > 0:
                     minimum_generation = results['num_commited'][(s, u)][i] * mingen_MW
                     if results['power_generated'][(s, u)][i] < minimum_generation:
-                        msg = 'Sanity Check: Unit', u, 'Interval', i, \
+                        msg = 'Warning: Unit', u, 'Interval', i, \
                             'generating below its min stable gen'
                         process_error_msg(msg)
                         errors_count += 1
@@ -38,11 +39,15 @@ def check_power_raise_reserves_lt_committed_capacity(sets, data, results):
             for s in sets['scenarios'].indices:
                 maximum_generation = results['num_commited'][(s, u)][i] * unit_capacity
                 power = results['power_generated'][(s, u)][i]
-                raise_reserve_enabled = \
+                raise_reserve_enable = \
                     sum(results['reserve_enabled'][(s, u, r)][i] for r in raise_reserves)
 
-                if power + raise_reserve_enabled > maximum_generation:
-                    msg = 'Sanity Check: Unit', u, 'Interval', i, 'generating above its capacity'
+                if power + raise_reserve_enable > maximum_generation + 0.5:
+                    msg = 'Warning: Unit ' + u + ' Interval ' + str(i) + ' scenario ' + \
+                        str(s) + ' gen plus raise reserve greater than capacity ' \
+                        + ' \nPower: ' + str(power) \
+                        + ' \nRaise reserve: ' + str(raise_reserve_enable) \
+                        + ' \nCommitted capacity: ' + str(maximum_generation)
                     process_error_msg(msg)
                     errors_count += 1
 
@@ -58,7 +63,7 @@ def check_power_lt_capacity(sets, data, results):
         for i in sets['intervals'].indices:
             for s in sets['scenarios'].indices:
                 if results['power_generated'][(s, u)][i] > total_capacity:
-                    msg = 'Sanity Check: Unit', u, 'Interval', i, 'generating above capacity', \
+                    msg = 'Warning: Unit' + u + 'Interval' + i + 'generating above capacity', \
                         '(%f > %f)' % (results['power_generated'][(s, u)][i], total_capacity)
                     process_error_msg(msg)
                     errors_count += 1
@@ -75,7 +80,7 @@ def check_energy_charged_lt_charge_capacity(sets, data, results):
         for s in sets['scenarios'].indices:
             for i in sets['intervals'].indices:
                 if results['charge_after_losses'][(s, u)][i] > charge_capacity:
-                    msg = 'Sanity Check: Unit', u, 'Interval', i, \
+                    msg = 'Warning: Unit', u, 'Interval', i, \
                         'charging above its charge capacity'
                     process_error_msg(msg)
                     errors_count += 1
@@ -222,7 +227,7 @@ def check_storage_continiuity(sets, data, results):
                         )
 
                 if net_flow.round(4) != 0:
-                    msg = 'Sanity Check: Unit', u, 'Interval', i, \
+                    msg = 'Warning: Unit', u, 'Interval', i, \
                         'net storage flow is not zero:', net_flow
                     process_error_msg(msg)
                     errors_count += 1
@@ -238,7 +243,7 @@ def check_stored_energy_lt_storage_capacity(sets, data, results):
         for s in sets['scenarios'].indices:
             for i in sets['intervals'].indices:
                 if results['energy_in_reservoir'][(s, u)][i] > storage_capacity_MWh:
-                    msg = 'Sanity Check: Unit', u, 'Interval', i, 'scenario', s, \
+                    msg = 'Warning: Unit', u, 'Interval', i, 'scenario', s, \
                         'stored energy exceeds storage capacity'
                     process_error_msg(msg)
 
@@ -261,7 +266,7 @@ def check_reserve_lt_capability(sets, data, results):
                     max_reserves = max_reserves_per_unit * results['num_commited'][(s, u)][i]
 
                     if results['reserve_enabled'][(s, u, r)][i] > max_reserves:
-                        msg = 'Sanity Check: Unit', u, 'Interval', i, 'scenario', s, 'reserve', \
+                        msg = 'Warning: Unit', u, 'Interval', i, 'scenario', s, 'reserve', \
                             r, '\nReserve enablement exceeds reserve capability', \
                             '\nUnit committed: ', results['num_commited'][(s, u)][i], \
                             '\nMax reserve (total): ', max_reserves
@@ -279,7 +284,7 @@ def check_max_rocof(sets, results):
         max_rocof = results['max_rocof']['MaxRocof'][i]
         rocof_limit = results['max_rocof']['RocofLimit'][i]
         if max_rocof > rocof_limit:
-            msg = 'Sanity Check: Interval', i, ': Max RoCoF of', max_rocof, \
+            msg = 'Warning: Interval', i, ': Max RoCoF of', max_rocof, \
                 'exceeds RoCoF limit of', rocof_limit
             process_error_msg(msg)
 
@@ -294,7 +299,7 @@ def run_sanity_checks(sets, data, results, settings):
     check_energy_charged_lt_charge_capacity(sets, data, results)
     check_storage_continiuity(sets, data, results)
     check_stored_energy_lt_storage_capacity(sets, data, results)
-    minimum_up_time_is_respected(sets, data, results, settings)
-    minimum_down_time_is_respected(sets, data, results, settings)
+    # minimum_up_time_is_respected(sets, data, results, settings)
+    # minimum_down_time_is_respected(sets, data, results, settings)
     check_reserve_lt_capability(sets, data, results)
     check_max_rocof(sets, results)

@@ -2,10 +2,11 @@ import os
 import pandas as pd
 import logging
 
+module_path = os.path.split(os.path.abspath(__file__))[0]
+default_files_path = os.path.join(module_path, 'default_files')
+
 
 def load_default_file(filename):
-    module_path = os.path.split(os.path.abspath(__file__))[0]
-    default_files_path = os.path.join(module_path, 'default_files')
     file_path = os.path.join(default_files_path, filename)
 
     data = pd.read_csv(file_path, index_col=0)
@@ -67,7 +68,13 @@ def load_master_sets(data, settings):
     sets['intervals'] = dkSet('intervals', data.orig_traces['demand'].index.to_list())
     sets['units'] = dkSet('units', data.units.index.to_list())
     sets['scenarios'] = dkSet('scenarios', list(range(settings['NUM_SCENARIOS'])))
-    sets['reserves'] = dkSet('reserves', ['PrimaryRaise', 'PrimaryLower'])
+
+    all_reserve_indices = \
+        pd.read_csv(os.path.join(default_files_path, 'all_reserve_indices.csv'))
+    reserve_indices = \
+        [r for r in all_reserve_indices['ReserveType'] if r in data.reserve_requirement.columns]
+
+    sets['reserves'] = dkSet('reserves', reserve_indices)
 
     return sets
 
@@ -254,17 +261,17 @@ class Data:
 
                 distribution = np.random.normal(0, arma_sigma, len(new_trace))
 
-                for i in new_trace.index.to_list()[1:]:
-                    forecast_error[i] = \
-                        arma_alpha * forecast_error[i-1] \
-                        + distribution[i] + distribution[i-1] * arma_beta
+                for j, i in enumerate(new_trace.index.to_list()[1:]):
+                    forecast_error[j] = \
+                        arma_alpha * forecast_error[j-1] \
+                        + distribution[j] + distribution[j-1] * arma_beta
 
                     if trace_name == 'demand':
                         new_trace.loc[i, (scenario, region)] = \
-                            (1 + forecast_error[i]) * new_trace.loc[i, (0, region)]
+                            (1 + forecast_error[j]) * new_trace.loc[i, (0, region)]
                     elif trace_name in ['wind', 'solarPV']:
                         new_trace.loc[i, (scenario, region)] = \
-                            forecast_error[i] + new_trace.loc[i, (0, region)]
+                            forecast_error[j] + new_trace.loc[i, (0, region)]
 
             return new_trace
 

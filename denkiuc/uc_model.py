@@ -72,15 +72,21 @@ class ucModel():
                                                           self.constraints_df)
 
     def solve_model(self):
+        import time
+
         def exit_if_infeasible(status):
             if status == 'Infeasible':
                 print("\n", self.name, 'was infeasible. Exiting.')
 
         print('Begin solving the model')
-        self.mod.solve(pp.PULP_CBC_CMD(timeLimit=120,
+
+        time_start_solve = time.perf_counter()
+        self.mod.solve(pp.PULP_CBC_CMD(timeLimit=5,
                                        threads=0,
-                                       msg=1,
-                                       gapRel=0))
+                                       msg=0,
+                                       gapRel=0.01))
+        time_end_solve = time.perf_counter()
+        self.solver_time = time_end_solve - time_start_solve
 
         self.optimality_status = pp.LpStatus[self.mod.status]
         print('Model status: %s' % self.optimality_status)

@@ -119,7 +119,7 @@ def max_units_committed(sets, data, vars, mod):
     for i in sets['intervals'].indices:
         for s in sets['scenarios'].indices:
             for u in sets['units_commit'].indices:
-                label = 'num_units_commit_lt_exist_%s_int_%s' % (u, i)
+                label = 'num_units_commit_lt_exist_%s_int_%s_s_%d' % (u, i, s)
 
                 condition = \
                     (vars['num_commited'].var[(i, s, u)]
@@ -195,7 +195,7 @@ def minimum_up_time(sets, data, vars, mod, settings):
             unit_up_time = data.units['MinUpTime_h'][u]
             i_low = 1 + max(i0 - 1, i - settings['INTERVALS_PER_HOUR'] * unit_up_time)
             for s in sets['scenarios'].indices:
-                label = 'minimum_up_time_i_%d_u_%s' % (i, u)
+                label = 'minimum_up_time_i_%d_u_%s_s_%d' % (i, u, s)
                 condition = (
                     vars['num_commited'].var[(i, s, u)]
                     >=
@@ -221,7 +221,7 @@ def minimum_down_time(sets, data, vars, mod, settings):
 
             i_low = 1 + max(i0 - 1, i - settings['INTERVALS_PER_HOUR'] * unit_down_time)
             for s in sets['scenarios'].indices:
-                label = 'minimum_down_time_i_%d_u_%s' % (i, u)
+                label = 'minimum_down_time_i_%d_u_%s_s_%d' % (i, u, s)
                 condition = (
                     data.units['NoUnits'][u] - vars['num_commited'].var[(i, s, u)]
                     >=
@@ -364,7 +364,7 @@ def limit_rocof(sets, data, vars, mod, settings):
                          for u2 in sets['units_commit'].indices)
 
             for u in sets['units'].indices:
-                label = 'limit_rocof_%s_int_%d_s' % (u, i)
+                label = 'limit_rocof_%s_int_%d_s_%d' % (u, i, s)
 
                 if u in sets['units_commit'].indices:
                     units_inertia = \
@@ -376,13 +376,11 @@ def limit_rocof(sets, data, vars, mod, settings):
                         vars['is_committed'].var[(i, s, u)] * data.units['Capacity_MW'][u]
 
                 elif u in sets['units_variable'].indices:
-                    for s in sets['scenarios'].indices:
-                        units_inertia = 0
-                        technology = data.units['Technology'][u]
-                        region = data.units['Region'][u]
-                        scenario = data.units['Region'][u]
-                        trace = mf.get_resource_trace(s, region, technology, data)
-                        contingency_size = trace[i] * data.units['Capacity_MW'][u]
+                    units_inertia = 0
+                    technology = data.units['Technology'][u]
+                    region = data.units['Region'][u]
+                    trace = mf.get_resource_trace(s, region, technology, data)
+                    contingency_size = trace[i] * data.units['Capacity_MW'][u]
 
                 elif u in sets['units_storage'].indices:
                     units_inertia = 0
@@ -401,7 +399,7 @@ def define_is_committed(sets, data, vars, mod):
     for i in sets['intervals'].indices:
         for s in sets['scenarios'].indices:
             for u in sets['units_commit'].indices:
-                label = 'define_is_committed_%s_int_%d_s' % (u, i)
+                label = 'define_is_committed_%s_int_%d_s_%d' % (u, i, s)
 
                 condition = \
                     (
