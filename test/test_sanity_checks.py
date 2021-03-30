@@ -86,24 +86,47 @@ class economic_dispatch_sanity_checks(unittest.TestCase):
 
 class unit_commitment_sanity_checks(unittest.TestCase):
     def test_power_raise_reserves_lt_capacity_no_error(self):
-        val = 0.0001
+        val = 0.1
 
-        for u in tM.sets['units'].indices:
+        for u in tM.sets['units_commit'].indices:
             units_capacity = \
                 tM.data.units['Capacity_MW'][u] * tM.data.units['NoUnits'][u]
 
             for i in tM.sets['intervals'].indices:
                 for s in tM.sets['scenarios'].indices:
                     tM.results['power_generated'].loc[i, (s, u)] = units_capacity * 1
+                    tM.results['num_commited'].loc[i, (s, u)] = 1
                     for r in tM.sets['raise_reserves'].indices:
-                        tM.results['reserve_enabled'].loc[i, (s, u, r)] += val
-                        tM.results['power_generated'].loc[i, (s, u)] += val
+                        tM.results['reserve_enabled'].loc[i, (s, u, r)] = val
+                        tM.results['power_generated'].loc[i, (s, u)] -= val
 
         test_result = \
             scs.check_power_raise_reserves_lt_commit_cap(tM.sets, tM.data, tM.results)
-        print(test_result)
 
         self.assertEqual(test_result, 0)
+
+    def test_power_raise_reserves_lt_capacity_error(self):
+        val = 0.1
+        counter = 0
+
+        for u in tM.sets['units_commit'].indices:
+            units_capacity = \
+                tM.data.units['Capacity_MW'][u] * tM.data.units['NoUnits'][u]
+
+            for i in tM.sets['intervals'].indices:
+                for s in tM.sets['scenarios'].indices:
+                    tM.results['power_generated'].loc[i, (s, u)] = units_capacity * 1
+                    tM.results['num_commited'].loc[i, (s, u)] = 1
+
+                    counter += 1
+                    for r in tM.sets['raise_reserves'].indices:
+                        tM.results['reserve_enabled'].loc[i, (s, u, r)] = 2*val
+                        tM.results['power_generated'].loc[i, (s, u)] -= val
+
+        test_result = \
+            scs.check_power_raise_reserves_lt_commit_cap(tM.sets, tM.data, tM.results)
+
+        self.assertEqual(test_result, counter)
 
 
 if __name__ == '__main__':

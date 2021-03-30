@@ -126,6 +126,7 @@ class dkVariable():
 
         self.result_df.index.name = sets_order[0].name
         self.result_df = self.result_df.astype(float)
+
         if self.type == 'Binary' or self.type == 'Integer':
             self.result_df = self.result_df.astype(int)
 

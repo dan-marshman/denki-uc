@@ -33,7 +33,7 @@ def check_power_raise_reserves_lt_commit_cap(sets, data, results):
     raise_reserves = sets['raise_reserves'].indices
 
     for u in sets['units_commit'].indices:
-        unit_capacity = data.units['Capacity_MW'][u]
+        unit_capacity = data.units['Capacity_MW'][u] * data.units['NoUnits'][u]
 
         for i in sets['intervals'].indices:
             for s in sets['scenarios'].indices:
@@ -42,7 +42,7 @@ def check_power_raise_reserves_lt_commit_cap(sets, data, results):
                 raise_reserve_enable = \
                     sum(results['reserve_enabled'][(s, u, r)][i] for r in raise_reserves)
 
-                if power + raise_reserve_enable > maximum_generation + 0.5:
+                if power + raise_reserve_enable > maximum_generation + 0.005:
                     msg = 'Warning: Unit ' + u + ' Interval ' + str(i) + ' scenario ' + \
                         str(s) + ' gen plus raise reserve greater than capacity ' \
                         + ' \nPower: ' + str(power) \
@@ -63,7 +63,8 @@ def check_power_lt_capacity(sets, data, results):
         for i in sets['intervals'].indices:
             for s in sets['scenarios'].indices:
                 if results['power_generated'][(s, u)][i] > total_capacity:
-                    msg = 'Warning: Unit' + u + 'Interval' + i + 'generating above capacity', \
+                    msg = 'Warning: Unit' + u + 'Interval' + str(i) \
+                        + 'generating above capacity', \
                         '(%f > %f)' % (results['power_generated'][(s, u)][i], total_capacity)
                     process_error_msg(msg)
                     errors_count += 1

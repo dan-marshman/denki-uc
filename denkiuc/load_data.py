@@ -262,16 +262,16 @@ class Data:
                 distribution = np.random.normal(0, arma_sigma, len(new_trace))
 
                 for j, i in enumerate(new_trace.index.to_list()[1:]):
-                    forecast_error[j] = \
-                        arma_alpha * forecast_error[j-1] \
-                        + distribution[j] + distribution[j-1] * arma_beta
+                    forecast_error[j+1] = \
+                        arma_alpha * forecast_error[j] \
+                        + distribution[j+1] + distribution[j] * arma_beta
 
                     if trace_name == 'demand':
                         new_trace.loc[i, (scenario, region)] = \
-                            (1 + forecast_error[j]) * new_trace.loc[i, (0, region)]
+                            (1 + forecast_error[j+1]) * new_trace.loc[i, (0, region)]
                     elif trace_name in ['wind', 'solarPV']:
                         new_trace.loc[i, (scenario, region)] = \
-                            forecast_error[j] + new_trace.loc[i, (0, region)]
+                            forecast_error[j+1] + new_trace.loc[i, (0, region)]
 
             return new_trace
 

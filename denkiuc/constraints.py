@@ -66,11 +66,11 @@ def intermittent_resource_availability(sets, data, vars, mod):
 
 def commitment_continuity(sets, data, vars, mod):
     for i in sets['intervals'].indices:
-
         for u in sets['units_commit'].indices:
+
             if i == min(sets['intervals'].indices):
                 for s in sets['scenarios'].indices:
-                    label = 'commitment_continuity_%s_int_%s' % (u, i)
+                    label = 'commitment_continuity_%s_i_%s_s_%d' % (u, i, s)
 
                     condition = \
                         (
@@ -81,17 +81,19 @@ def commitment_continuity(sets, data, vars, mod):
                          - vars['num_shutting_down'].var[(i, s, u)]
                          )
 
-                if i > min(sets['intervals'].indices):
-                    label = 'commitment_continuity_%s_int_%s' % (u, i)
+                    mod += condition, label
 
-                    condition = \
-                        (
-                         vars['num_commited'].var[(i, s, u)]
-                         ==
-                         vars['num_commited'].var[(i-1, s, u)]
-                         + vars['num_starting_up'].var[(i, s, u)]
-                         - vars['num_shutting_down'].var[(i, s, u)]
-                         )
+            if i > min(sets['intervals'].indices):
+                label = 'commitment_continuity_%s_i_%s_s+%d' % (u, i, s)
+
+                condition = \
+                    (
+                     vars['num_commited'].var[(i, s, u)]
+                     ==
+                     vars['num_commited'].var[(i-1, s, u)]
+                     + vars['num_starting_up'].var[(i, s, u)]
+                     - vars['num_shutting_down'].var[(i, s, u)]
+                     )
 
                 mod += condition, label
 
