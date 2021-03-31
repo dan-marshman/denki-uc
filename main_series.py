@@ -115,6 +115,7 @@ class denkiDay():
 
     def solve_day(self):
         day_model = uc.ucModel(self.name, self.input_path)
+        day_model.arrange_data()
         day_model.solve()
 
         self.days_status = dict()

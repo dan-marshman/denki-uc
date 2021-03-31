@@ -10,21 +10,25 @@ test1_path = os.path.join(uc.path_to_tests, 'test1')
 class load_dataTests(unittest.TestCase):
     def test_traces_are_loaded(self):
         test_model = uc.ucModel('test1', test1_path)
+        test_model.arrange_data()
         val = test_model.data.traces['demand'][(0, 'Demand')][0]
         self.assertEqual(val, 1000)
 
     def test_unit_data_is_loaded(self):
         test_model = uc.ucModel('test1', test1_path)
+        test_model.arrange_data()
         val = test_model.data.units['Capacity_MW']['Coal1']
         self.assertEqual(val, 510)
 
     def test_initial_state_is_loaded(self):
         test_model = uc.ucModel('test1', test1_path)
+        test_model.arrange_data()
         val = test_model.data.initial_state['PowerGeneration_MW']['Coal1']
         self.assertEqual(val, 300)
 
     def test_initial_state_commit_is_wrong_1(self):
         test_model = uc.ucModel('test1', test1_path)
+        test_model.arrange_data()
         test_model.data.initial_state['NumCommited']['Coal1'] = 1.8
         test_model.data.validate_initial_state_data(test_model.sets)
         result = test_model.data.initial_state['NumCommited']['Coal1']
@@ -32,6 +36,7 @@ class load_dataTests(unittest.TestCase):
 
     def test_initial_state_commit_is_wrong_2(self):
         test_model = uc.ucModel('test1', test1_path)
+        test_model.arrange_data()
         test_model.data.initial_state['NumCommited']['Coal1'] = -0.3
         test_model.data.validate_initial_state_data(test_model.sets)
         result = test_model.data.initial_state['NumCommited']['Coal1']
@@ -39,6 +44,7 @@ class load_dataTests(unittest.TestCase):
 
     def test_initial_state_commit_is_wrong_3(self):
         test_model = uc.ucModel('test1', test1_path)
+        test_model.arrange_data()
         test_model.data.initial_state['NumCommited']['Coal1'] = 0.3
         test_model.data.validate_initial_state_data(test_model.sets)
         result = test_model.data.initial_state['NumCommited']['Coal1']
@@ -46,6 +52,7 @@ class load_dataTests(unittest.TestCase):
 
     def test_arma_demand(self):
         test_model = uc.ucModel('test1', test1_path)
+        test_model.arrange_data()
         scenarios = test_model.sets['scenarios']
         scenarios.indices = list(range(5))
         test_model.data.add_arma_scenarios(scenarios, random_seed=12)
@@ -59,6 +66,7 @@ class load_dataTests(unittest.TestCase):
 
     def test_negative_trace(self):
         test_model = uc.ucModel('test1', test1_path)
+        test_model.arrange_data()
         scenarios = test_model.sets['scenarios']
         scenarios.indices = list(range(2))
 
@@ -78,6 +86,7 @@ class load_dataTests(unittest.TestCase):
 
     def test_too_large_intermittent_trace(self):
         test_model = uc.ucModel('test1', test1_path)
+        test_model.arrange_data()
         scenarios = test_model.sets['scenarios']
         scenarios.indices = list(range(2))
 
@@ -118,6 +127,7 @@ class setsTests(unittest.TestCase):
 
     def test_sets_intervals(self):
         test_model = uc.ucModel('test1', test1_path)
+        test_model.arrange_data()
 
         result = test_model.sets['intervals'].indices
         expected_set = list(range(48))
@@ -125,18 +135,21 @@ class setsTests(unittest.TestCase):
 
     def test_sets_commit(self):
         test_model = uc.ucModel('test1', test1_path)
+        test_model.arrange_data()
         result = test_model.sets['units_commit'].indices
         expected_set = ['Coal1', 'Coal2', 'Gas1', 'Gas2']
         self.assertEqual(result, expected_set)
 
     def test_sets_variable(self):
         test_model = uc.ucModel('test1', test1_path)
+        test_model.arrange_data()
         result = test_model.sets['units_variable'].indices
         expected_set = ['SolarPV1', 'Wind1']
         self.assertEqual(result, expected_set)
 
     def test_sets_storage(self):
         test_model = uc.ucModel('test1', test1_path)
+        test_model.arrange_data()
         result = test_model.sets['units_storage'].indices
         expected_set = ['Battery1']
         self.assertEqual(result, expected_set)
@@ -156,6 +169,7 @@ class setsTests(unittest.TestCase):
 
     def test_look_ahead_intervals_correct(self):
         test_model = uc.ucModel('test1', test1_path)
+        test_model.arrange_data()
         actual_result = test_model.sets['look_ahead_intervals'].indices
         expected_set = list(range(28, 48))
         self.assertEqual(expected_set, actual_result)

@@ -6,6 +6,7 @@ import denkiuc.sanity_check_solution as scs
 test1_path = os.path.join(uc.path_to_tests, 'test1')
 tM = uc.ucModel('test1', test1_path)
 tM.data.units.loc['Coal1', 'NoUnits'] = 5
+tM.arrange_data()
 tM.solve()
 
 
