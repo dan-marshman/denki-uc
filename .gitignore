@@ -7,3 +7,4 @@ denkiuc.egg-info/*
 new_readme.md
 denkiuc/__pycache__/*
 test/__pycache__/*
+denki_series/__pycache__/*
