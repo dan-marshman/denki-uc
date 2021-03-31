@@ -22,8 +22,7 @@ class economic_dispatch_sanity_checks(unittest.TestCase):
                     tM.results['power_generated'].loc[i, (s, u)] = \
                         units_capacity * 1
 
-        test_result = \
-            scs.check_power_lt_capacity(tM.sets, tM.data, tM.results)
+        test_result, discard = scs.check_power_lt_capacity(tM.sets, tM.data, tM.results)
 
         self.assertEqual(test_result, 0)
 
@@ -40,8 +39,7 @@ class economic_dispatch_sanity_checks(unittest.TestCase):
                     tM.results['power_generated'].loc[i, (s, u)] = \
                         units_capacity * 1.0000001
 
-        test_result = \
-            scs.check_power_lt_capacity(tM.sets, tM.data, tM.results)
+        test_result, discard = scs.check_power_lt_capacity(tM.sets, tM.data, tM.results)
 
         self.assertEqual(test_result, counter)
 
@@ -56,9 +54,8 @@ class economic_dispatch_sanity_checks(unittest.TestCase):
                     tM.results['charge_after_losses'].loc[i, (s, u)] = \
                         units_charge_capacity * 1
 
-        test_result = scs.check_energy_charged_lt_charge_capacity(tM.sets,
-                                                                  tM.data,
-                                                                  tM.results)
+        test_result, discard = \
+            scs.check_energy_charged_lt_charge_capacity(tM.sets, tM.data, tM.results)
 
         self.assertEqual(test_result, 0)
 
@@ -76,9 +73,8 @@ class economic_dispatch_sanity_checks(unittest.TestCase):
                     tM.results['charge_after_losses'].loc[i, (s, u)] = \
                         units_charge_capacity * 1.0000001
 
-        test_result = scs.check_energy_charged_lt_charge_capacity(tM.sets,
-                                                                  tM.data,
-                                                                  tM.results)
+        test_result, discard = \
+            scs.check_energy_charged_lt_charge_capacity(tM.sets, tM.data, tM.results)
 
         self.assertEqual(test_result, counter)
 
@@ -102,7 +98,7 @@ class unit_commitment_sanity_checks(unittest.TestCase):
                         tM.results['reserve_enabled'].loc[i, (s, u, r)] = val
                         tM.results['power_generated'].loc[i, (s, u)] -= val
 
-        test_result = \
+        test_result, discard = \
             scs.check_power_raise_reserves_lt_commit_cap(tM.sets, tM.data, tM.results)
 
         self.assertEqual(test_result, 0)
@@ -127,7 +123,7 @@ class unit_commitment_sanity_checks(unittest.TestCase):
                         tM.results['reserve_enabled'].loc[i, (s, u, r)] = 2*val
                         tM.results['power_generated'].loc[i, (s, u)] -= val
 
-        test_result = \
+        test_result, discard = \
             scs.check_power_raise_reserves_lt_commit_cap(tM.sets, tM.data, tM.results)
 
         self.assertEqual(test_result, counter)
@@ -151,7 +147,7 @@ class unit_commitment_sanity_checks(unittest.TestCase):
                         tM.results['reserve_enabled'].loc[i, (s, u, r)] = val
                         tM.results['power_generated'].loc[i, (s, u)] += val
 
-        test_result = \
+        test_result, discard = \
             scs.check_power_lower_reserves_gt_min_gen(tM.sets, tM.data, tM.results)
 
         self.assertEqual(test_result, 0)
@@ -177,7 +173,7 @@ class unit_commitment_sanity_checks(unittest.TestCase):
                         tM.results['reserve_enabled'].loc[i, (s, u, r)] = 2 * val
                         tM.results['power_generated'].loc[i, (s, u)] += val
 
-        test_result = \
+        test_result, discard = \
             scs.check_power_lower_reserves_gt_min_gen(tM.sets, tM.data, tM.results)
 
         self.assertEqual(test_result, counter)

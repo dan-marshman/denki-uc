@@ -15,3 +15,4 @@ WRITE_RESULTS_WITHOUT_LOOK_AHEAD,True,bool,If true results without lookahead dat
 RANDOM_SEED,466,int,Random seed for numpy
 SYSTEM_FREQUENCY,50,float,System frequency
 MAX_ROCOF,2000,float,Maximum rate of change of frequency
+PRINT_WARNINGS,True,bool,Print warnings as they occur
