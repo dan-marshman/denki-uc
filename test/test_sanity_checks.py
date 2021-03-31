@@ -75,8 +75,6 @@ class economic_dispatch_sanity_checks(unittest.TestCase):
                     tM.results['charge_after_losses'].loc[i, (s, u)] = \
                         units_charge_capacity * 1.0000001
 
-        print(tM.results['charge_after_losses'].head())
-
         test_result = scs.check_energy_charged_lt_charge_capacity(tM.sets,
                                                                   tM.data,
                                                                   tM.results)
@@ -90,12 +88,15 @@ class unit_commitment_sanity_checks(unittest.TestCase):
 
         for u in tM.sets['units_commit'].indices:
             units_capacity = \
-                tM.data.units['Capacity_MW'][u] * tM.data.units['NoUnits'][u]
+                tM.data.units['Capacity_MW'][u]
 
             for i in tM.sets['intervals'].indices:
                 for s in tM.sets['scenarios'].indices:
-                    tM.results['power_generated'].loc[i, (s, u)] = units_capacity * 1
-                    tM.results['num_commited'].loc[i, (s, u)] = 1
+                    tM.results['num_commited'].loc[i, (s, u)] = \
+                        max(1, tM.data.units['NoUnits'][u] - 1)
+                    tM.results['power_generated'].loc[i, (s, u)] = \
+                        units_capacity * tM.results['num_commited'].loc[i, (s, u)]
+
                     for r in tM.sets['raise_reserves'].indices:
                         tM.results['reserve_enabled'].loc[i, (s, u, r)] = val
                         tM.results['power_generated'].loc[i, (s, u)] -= val
@@ -111,12 +112,14 @@ class unit_commitment_sanity_checks(unittest.TestCase):
 
         for u in tM.sets['units_commit'].indices:
             units_capacity = \
-                tM.data.units['Capacity_MW'][u] * tM.data.units['NoUnits'][u]
+                tM.data.units['Capacity_MW'][u]
 
             for i in tM.sets['intervals'].indices:
                 for s in tM.sets['scenarios'].indices:
-                    tM.results['power_generated'].loc[i, (s, u)] = units_capacity * 1
-                    tM.results['num_commited'].loc[i, (s, u)] = 1
+                    tM.results['num_commited'].loc[i, (s, u)] = \
+                        max(1, tM.data.units['NoUnits'][u] - 1)
+                    tM.results['power_generated'].loc[i, (s, u)] = \
+                        units_capacity * tM.results['num_commited'].loc[i, (s, u)]
 
                     counter += 1
                     for r in tM.sets['raise_reserves'].indices:
@@ -125,6 +128,56 @@ class unit_commitment_sanity_checks(unittest.TestCase):
 
         test_result = \
             scs.check_power_raise_reserves_lt_commit_cap(tM.sets, tM.data, tM.results)
+
+        self.assertEqual(test_result, counter)
+
+    def test_power_lower_reserves_gt_min_gen_no_error(self):
+        val = 0.1
+
+        for u in tM.sets['units_commit'].indices:
+            units_min_gen = \
+                tM.data.units['Capacity_MW'][u] \
+                * tM.data.units['MinGen'][u]
+
+            for i in tM.sets['intervals'].indices:
+                for s in tM.sets['scenarios'].indices:
+                    tM.results['num_commited'].loc[i, (s, u)] = \
+                        max(1, tM.data.units['NoUnits'][u] - 1)
+                    tM.results['power_generated'].loc[i, (s, u)] = \
+                        units_min_gen * tM.results['num_commited'].loc[i, (s, u)]
+
+                    for r in tM.sets['lower_reserves'].indices:
+                        tM.results['reserve_enabled'].loc[i, (s, u, r)] = val
+                        tM.results['power_generated'].loc[i, (s, u)] += val
+
+        test_result = \
+            scs.check_power_lower_reserves_gt_min_stable_gen(tM.sets, tM.data, tM.results)
+
+        self.assertEqual(test_result, 0)
+
+    def test_power_lower_reserves_gt_min_gen_error(self):
+        val = 0.1
+        counter = 0
+
+        for u in tM.sets['units_commit'].indices:
+            units_min_gen = \
+                tM.data.units['Capacity_MW'][u] \
+                * tM.data.units['MinGen'][u]
+
+            for i in tM.sets['intervals'].indices:
+                for s in tM.sets['scenarios'].indices:
+                    tM.results['num_commited'].loc[i, (s, u)] = \
+                        max(1, tM.data.units['NoUnits'][u] - 1)
+                    tM.results['power_generated'].loc[i, (s, u)] = \
+                        units_min_gen * tM.results['num_commited'].loc[i, (s, u)]
+
+                    counter += 1
+                    for r in tM.sets['lower_reserves'].indices:
+                        tM.results['reserve_enabled'].loc[i, (s, u, r)] = 2 * val
+                        tM.results['power_generated'].loc[i, (s, u)] += val
+
+        test_result = \
+            scs.check_power_lower_reserves_gt_min_stable_gen(tM.sets, tM.data, tM.results)
 
         self.assertEqual(test_result, counter)
 

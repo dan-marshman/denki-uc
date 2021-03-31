@@ -7,23 +7,30 @@ def process_error_msg(msg):
         pass
 
 
-def check_power_gt_min_stable_gen(sets, data, results):
+def check_power_lower_reserves_gt_min_stable_gen(sets, data, results):
     errors_count = 0
+    lower_reserves = sets['lower_reserves'].indices
 
     for u in sets['units_commit'].indices:
         mingen_MW \
             = data.units['Capacity_MW'][u] \
-            * data.units['MinGen'][u]
+            * data.units['MinGen'][u] \
 
         for i in sets['intervals'].indices:
             for s in sets['scenarios'].indices:
-                if results['num_commited'][(s, u)][i] > 0:
-                    minimum_generation = results['num_commited'][(s, u)][i] * mingen_MW
-                    if results['power_generated'][(s, u)][i] < minimum_generation:
-                        msg = 'Warning: Unit', u, 'Interval', i, \
-                            'generating below its min stable gen'
-                        process_error_msg(msg)
-                        errors_count += 1
+                minimum_generation = results['num_commited'][(s, u)][i] * mingen_MW
+                power = results['power_generated'][(s, u)][i]
+                lower_reserve_enable = \
+                    sum(results['reserve_enabled'][(s, u, r)][i] for r in lower_reserves)
+
+                if power - lower_reserve_enable < minimum_generation - 0.005:
+                    msg = 'Warning: Unit ' + u + ' Interval ' + str(i) + ' scenario ' + \
+                        str(s) + ' gen less lower reserve less than capacity ' \
+                        + ' \nPower: ' + str(power) \
+                        + ' \nLower reserve: ' + str(lower_reserve_enable) \
+                        + ' \nMinimum gen (given commited cap.): ' + str(minimum_generation)
+                    process_error_msg(msg)
+                    errors_count += 1
 
     return errors_count
 
@@ -33,7 +40,7 @@ def check_power_raise_reserves_lt_commit_cap(sets, data, results):
     raise_reserves = sets['raise_reserves'].indices
 
     for u in sets['units_commit'].indices:
-        unit_capacity = data.units['Capacity_MW'][u] * data.units['NoUnits'][u]
+        unit_capacity = data.units['Capacity_MW'][u]
 
         for i in sets['intervals'].indices:
             for s in sets['scenarios'].indices:
@@ -206,9 +213,10 @@ def check_storage_continiuity(sets, data, results):
 
                 if i == min(sets['intervals'].indices):
                     initial_energy_in_storage_MWh \
-                        = (data.initial_state['StorageLevel_frac'][u]
-                           * data.units['StorageCap_h'][u]
-                           * data.units['Capacity_MW'][u])
+                        = data.initial_state['StorageLevel_frac'][u] \
+                             * data.units['StorageCap_h'][u] \
+                             * data.units['Capacity_MW'][u] \
+                             * data.units['NoUnits'][u]
 
                     net_flow = \
                         (
@@ -240,7 +248,11 @@ def check_stored_energy_lt_storage_capacity(sets, data, results):
     errors_count = 0
 
     for u in sets['units_storage'].indices:
-        storage_capacity_MWh = data.units['StorageCap_h'][u] * data.units['Capacity_MW'][u]
+        storage_capacity_MWh = \
+            data.units['StorageCap_h'][u] \
+            * data.units['Capacity_MW'][u] \
+            * data.units['NoUnits'][u]
+
         for s in sets['scenarios'].indices:
             for i in sets['intervals'].indices:
                 if results['energy_in_reservoir'][(s, u)][i] > storage_capacity_MWh:
@@ -295,7 +307,7 @@ def check_max_rocof(sets, results):
 def run_sanity_checks(sets, data, results, settings):
     check_power_lt_capacity(sets, data, results)
     check_power_raise_reserves_lt_commit_cap(sets, data, results)
-    check_power_gt_min_stable_gen(sets, data, results)
+    check_power_lower_reserves_gt_min_stable_gen(sets, data, results)
     total_gen_equals_demand(sets, results)
     check_energy_charged_lt_charge_capacity(sets, data, results)
     check_storage_continiuity(sets, data, results)

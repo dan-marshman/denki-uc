@@ -1,0 +1,17 @@
+Parameter,Value,Type,Description
+INTERVALS_PER_HOUR,2,int,Number of dispatch intervals per hour (e.g. 2 is half-hourly dispatch)
+INCL_UNIT_COMMITMENT,TRUE,bool,True if UC constriants are to be included
+INCL_NETWRK_CONSTRAINTS,TRUE,bool,True if network constraints are to be included
+INCL_AS,FALSE,bool,True if ancillary services are to be included
+UNS_LOAD_PNTY,10000,float,The penalty on unserved load
+UNS_RESERVE_PNTY,1000,float, The penalty on unmet reserve requirements
+UNS_INERTIA_PNTY,200,float, The penalty on unment the inertia requirement
+OUTPUTS_PATH,C:\Users\danie\Documents\denki-uc\outputs,str,The path to the output folder
+LOOK_AHEAD_INTS,24,int,Number of intervals to be treated as lookahead
+NUM_SCENARIOS,1,int,Number of stochastic scenarios
+WRITE_RESULTS_WITH_LOOK_AHEAD,True,bool,If true results with lookahead data are written
+WRITE_RESULTS_WITHOUT_LOOK_AHEAD,True,bool,If true results without lookahead data are written
+RANDOM_SEED,466,int,Random seed for numpy
+SYSTEM_FREQUENCY,50,float,System frequency
+MAX_ROCOF,20,float,Maximum rate of change of frequency
+INTERVALS_PER_DAY,48,int,Total number of intervals per day (including look-ahead)

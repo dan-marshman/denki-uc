@@ -1,4 +1,3 @@
-import os
 import denkiuc.uc_model as uc
 import unittest
 
