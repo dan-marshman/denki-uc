@@ -8,9 +8,11 @@ def add_custom_results(data, results, results_path, settings, sets):
     new_results['charge_losses'] = add_charge_losses(data, results)
     new_results['total_charge_load'] = add_total_charge_load(results, new_results)
     new_results['dispatch'] = add_dispatch_result(data, results, new_results)
-    new_results['inertia_dispatch'] = add_inertia_dispatch(data, results)
-    new_results['max_rocof'] = add_maximum_rocof(data, new_results, settings)
     new_results['final_state'] = add_final_state(data, results, sets)
+
+    if settings['INCL_UNIT_COMMITMENT']:
+        new_results['inertia_dispatch'] = add_inertia_dispatch(data, results)
+        new_results['max_rocof'] = add_maximum_rocof(data, new_results, settings)
 
     for name, result in new_results.items():
         # result = result.round(3)

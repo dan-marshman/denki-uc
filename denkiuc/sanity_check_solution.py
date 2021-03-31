@@ -105,8 +105,6 @@ def total_gen_equals_demand(sets, results):
     for s in sets['scenarios'].indices:
         filtered_cols = [c for c in df_cols if c[0] == s]
         dispatch_sum = dispatch[filtered_cols].sum(axis=1).round(4)
-        print(dispatch.head())
-        print(dispatch_sum.head())
 
         if dispatch_sum.sum() != 0:
             dispatch_sum = dispatch_sum[dispatch_sum[:] != 0]

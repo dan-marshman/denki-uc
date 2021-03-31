@@ -78,53 +78,72 @@ class dkVariable():
                                   cat=self.type)
         return var
 
-    def to_df(self):
+    def one_dim_to_df(self):
         import pandas as pd
 
-        num_indexes = len(self.sets)
+        values = [self.var[i].value() for i in self.sets_indices]
+        self.result_df = pd.Series(data=values, index=self.sets_indices, name=self.name)
 
+    def two_dim_to_df(self, sets_order):
+        import pandas as pd
+
+        self.result_df = \
+            pd.DataFrame(index=sets_order[0].indices, columns=sets_order[1].indices)
+        for x0 in sets_order[0].indices:
+            for x1 in sets_order[1].indices:
+                self.result_df.loc[x0, x1] = self.var[(x0, x1)].value()
+
+    def three_dim_to_df(self, sets_order):
+        import pandas as pd
+
+        iterables = [sets_order[1].indices, sets_order[2].indices]
+        iterables_names = [sets_order[1].name, sets_order[2].name]
+        df_cols = pd.MultiIndex.from_product(iterables, names=iterables_names)
+
+        self.result_df = pd.DataFrame(index=sets_order[0].indices, columns=df_cols)
+        self.result_df.index.name = sets_order[0].name
+        for x0 in sets_order[0].indices:
+            for x1 in sets_order[1].indices:
+                for x2 in sets_order[2].indices:
+                    self.result_df.loc[x0, (x1, x2)] = self.var[(x0, x1, x2)].value()
+
+    def four_dim_to_df(self, sets_order):
+        import pandas as pd
+
+        iterables = [sets_order[1].indices, sets_order[2].indices, sets_order[3].indices]
+        iterables_names = [sets_order[1].name, sets_order[2].name, sets_order[3].name]
+        df_cols = pd.MultiIndex.from_product(iterables, names=iterables_names)
+
+        self.result_df = pd.DataFrame(index=sets_order[0].indices, columns=df_cols)
+        self.result_df.index.name = sets_order[0].name
+        for x0 in sets_order[0].indices:
+            for x1 in sets_order[1].indices:
+                for x2 in sets_order[2].indices:
+                    for x3 in sets_order[3].indices:
+                        self.result_df.loc[x0, (x1, x2, x3)] = \
+                            self.var[(x0, x1, x2, x3)].value()
+
+    def get_vars_sets_order(self):
         sets_order = dict()
         for n, set in enumerate(self.sets):
             sets_order[n] = set
+        return sets_order
+
+    def to_df(self):
+        num_indexes = len(self.sets)
+        sets_order = self.get_vars_sets_order()
 
         if num_indexes == 1:
-            values = [self.var[i].value() for i in self.sets_indices]
-            self.result_df = pd.Series(data=values, index=self.sets_indices, name=self.name)
-
-        if num_indexes == 2:
-            self.result_df = \
-                pd.DataFrame(index=sets_order[0].indices, columns=sets_order[1].indices)
-            for x0 in sets_order[0].indices:
-                for x1 in sets_order[1].indices:
-                    self.result_df.loc[x0, x1] = self.var[(x0, x1)].value()
-
-        if num_indexes == 3:
-            iterables = [sets_order[1].indices, sets_order[2].indices]
-            iterables_names = [sets_order[1].name, sets_order[2].name]
-            df_cols = pd.MultiIndex.from_product(iterables, names=iterables_names)
-
-            self.result_df = pd.DataFrame(index=sets_order[0].indices, columns=df_cols)
-            self.result_df.index.name = sets_order[0].name
-            for x0 in sets_order[0].indices:
-                for x1 in sets_order[1].indices:
-                    for x2 in sets_order[2].indices:
-                        self.result_df.loc[x0, (x1, x2)] = self.var[(x0, x1, x2)].value()
-
-        if num_indexes == 4:
-            iterables = [sets_order[1].indices, sets_order[2].indices, sets_order[3].indices]
-            iterables_names = [sets_order[1].name, sets_order[2].name, sets_order[3].name]
-            df_cols = pd.MultiIndex.from_product(iterables, names=iterables_names)
-
-            self.result_df = pd.DataFrame(index=sets_order[0].indices, columns=df_cols)
-            self.result_df.index.name = sets_order[0].name
-            for x0 in sets_order[0].indices:
-                for x1 in sets_order[1].indices:
-                    for x2 in sets_order[2].indices:
-                        for x3 in sets_order[3].indices:
-                            self.result_df.loc[x0, (x1, x2, x3)] = \
-                                self.var[(x0, x1, x2, x3)].value()
+            self.one_dim_to_df()
+        elif num_indexes == 2:
+            self.two_dim_to_df(sets_order)
+        elif num_indexes == 3:
+            self.three_dim_to_df(sets_order)
+        elif num_indexes == 4:
+            self.four_dim_to_df(sets_order)
 
         self.result_df.index.name = sets_order[0].name
+        self.result_df = self.result_df.fillna(-9999)
         self.result_df = self.result_df.astype(float)
 
         if self.type == 'Binary' or self.type == 'Integer':

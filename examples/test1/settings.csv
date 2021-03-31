@@ -1,5 +1,6 @@
 Parameter,Value,Type,Description
 INTERVALS_PER_HOUR,2,int,Number of dispatch intervals per hour (e.g. 2 is half-hourly dispatch)
+USE_CUSTOM_CONSTRAINTS,False,bool,Controls whether the constraints.csv file is used
 INCL_UNIT_COMMITMENT,TRUE,bool,True if UC constriants are to be included
 INCL_NETWRK_CONSTRAINTS,TRUE,bool,True if network constraints are to be included
 INCL_AS,FALSE,bool,True if ancillary services are to be included

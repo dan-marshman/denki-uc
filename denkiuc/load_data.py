@@ -204,6 +204,14 @@ class Data:
             print("Looking for initial state file - doesn't exist", initial_state_path)
             self.missing_values['initial_state'] = True
 
+    def load_arma_values(self):
+        filename = 'arma_values.csv'
+        path_to_db_arma_file = os.path.join(self.path_to_inputs, filename)
+        if os.path.exists(path_to_db_arma_file):
+            self.arma_vals_df = pd.read_csv(path_to_db_arma_file, index_col=0)
+        else:
+            self.arma_vals_df = load_default_file(filename)
+
     def validate_initial_state_data(self, sets):
         for u in sets['units_commit'].indices:
             commit_val = self.initial_state['NumCommited'][u]
@@ -245,14 +253,6 @@ class Data:
             if self.initial_state['StorageLevel_frac'][u] > 1:
                 print('Unit %s has initial storage fraction greater than 1' % u)
                 exit()
-
-    def load_arma_values(self):
-        filename = 'arma_values.csv'
-        path_to_db_arma_file = os.path.join(self.path_to_inputs, filename)
-        if os.path.exists(path_to_db_arma_file):
-            self.arma_vals_df = pd.read_csv(path_to_db_arma_file, index_col=0)
-        else:
-            self.arma_vals_df = load_default_file(filename)
 
     def add_arma_scenarios(self, scenarios, random_seed):
         import numpy as np

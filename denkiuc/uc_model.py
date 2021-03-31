@@ -21,8 +21,17 @@ class ucModel():
             print("Inputs path does not exist. Exiting")
             return
 
-        self.setup()
-        self.data = ld.Data(path_to_inputs)
+        self.load_data()
+
+    def load_data(self):
+        self.settings = ld.load_settings(self.path_to_inputs)
+        self.data = ld.Data(self.path_to_inputs)
+        self.path_to_outputs = os.path.join(self.settings['OUTPUTS_PATH'], self.name)
+        mf.make_folder(self.path_to_outputs)
+        mf.set_logger_path(self.path_to_outputs)
+        self.results = dict()
+
+    def arrange_data(self):
         self.sets = ld.load_master_sets(self.data, self.settings)
         self.sets = ld.load_unit_subsets(self.data, self.sets)
         self.sets = ld.add_reserve_subsets(self.sets)
@@ -41,13 +50,6 @@ class ucModel():
         self.build_model()
 
         print("\n---- Model built ----\n")
-
-    def setup(self):
-        self.settings = ld.load_settings(self.path_to_inputs)
-        self.path_to_outputs = os.path.join(self.settings['OUTPUTS_PATH'], self.name)
-        mf.make_folder(self.path_to_outputs)
-        mf.set_logger_path(self.path_to_outputs)
-        self.results = dict()
 
     def solve(self):
         self.solve_model()
