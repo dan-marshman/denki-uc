@@ -151,7 +151,7 @@ class unit_commitment_sanity_checks(unittest.TestCase):
                         tM.results['power_generated'].loc[i, (s, u)] += val
 
         test_result = \
-            scs.check_power_lower_reserves_gt_min_stable_gen(tM.sets, tM.data, tM.results)
+            scs.check_power_lower_reserves_gt_min_gen(tM.sets, tM.data, tM.results)
 
         self.assertEqual(test_result, 0)
 
@@ -177,7 +177,7 @@ class unit_commitment_sanity_checks(unittest.TestCase):
                         tM.results['power_generated'].loc[i, (s, u)] += val
 
         test_result = \
-            scs.check_power_lower_reserves_gt_min_stable_gen(tM.sets, tM.data, tM.results)
+            scs.check_power_lower_reserves_gt_min_gen(tM.sets, tM.data, tM.results)
 
         self.assertEqual(test_result, counter)
 

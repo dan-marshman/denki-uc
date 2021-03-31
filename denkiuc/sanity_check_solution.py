@@ -7,7 +7,7 @@ def process_error_msg(msg):
         pass
 
 
-def check_power_lower_reserves_gt_min_stable_gen(sets, data, results):
+def check_power_lower_reserves_gt_min_gen(sets, data, results):
     errors_count = 0
     lower_reserves = sets['lower_reserves'].indices
 
@@ -307,7 +307,7 @@ def check_max_rocof(sets, results):
 def run_sanity_checks(sets, data, results, settings):
     check_power_lt_capacity(sets, data, results)
     check_power_raise_reserves_lt_commit_cap(sets, data, results)
-    check_power_lower_reserves_gt_min_stable_gen(sets, data, results)
+    check_power_lower_reserves_gt_min_gen(sets, data, results)
     total_gen_equals_demand(sets, results)
     check_energy_charged_lt_charge_capacity(sets, data, results)
     check_storage_continiuity(sets, data, results)
