@@ -27,7 +27,11 @@ def load_settings(path_to_inputs):
                 settings.setdefault(row['Parameter'], int(row['Value']))
 
             if row['Type'] == 'bool':
-                settings.setdefault(row['Parameter'], bool(row['Value']))
+                val = row['Value'].lower()
+                if val == 'false':
+                    settings.setdefault(row['Parameter'], False)
+                elif val == 'true':
+                    settings.setdefault(row['Parameter'], True)
 
             if row['Type'] == 'str':
                 settings.setdefault(row['Parameter'], str(row['Value']))

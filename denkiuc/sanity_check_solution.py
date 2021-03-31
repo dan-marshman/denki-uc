@@ -105,6 +105,8 @@ def total_gen_equals_demand(sets, results):
     for s in sets['scenarios'].indices:
         filtered_cols = [c for c in df_cols if c[0] == s]
         dispatch_sum = dispatch[filtered_cols].sum(axis=1).round(4)
+        print(dispatch.head())
+        print(dispatch_sum.head())
 
         if dispatch_sum.sum() != 0:
             dispatch_sum = dispatch_sum[dispatch_sum[:] != 0]
@@ -306,13 +308,15 @@ def check_max_rocof(sets, results):
 
 def run_sanity_checks(sets, data, results, settings):
     check_power_lt_capacity(sets, data, results)
-    check_power_raise_reserves_lt_commit_cap(sets, data, results)
-    check_power_lower_reserves_gt_min_gen(sets, data, results)
     total_gen_equals_demand(sets, results)
     check_energy_charged_lt_charge_capacity(sets, data, results)
     check_storage_continiuity(sets, data, results)
     check_stored_energy_lt_storage_capacity(sets, data, results)
-    # minimum_up_time_is_respected(sets, data, results, settings)
-    # minimum_down_time_is_respected(sets, data, results, settings)
     check_reserve_lt_capability(sets, data, results)
-    check_max_rocof(sets, results)
+
+    if settings['INCL_UNIT_COMMITMENT']:
+        # minimum_up_time_is_respected(sets, data, results, settings)
+        # minimum_down_time_is_respected(sets, data, results, settings)
+        check_max_rocof(sets, results)
+        check_power_raise_reserves_lt_commit_cap(sets, data, results)
+        check_power_lower_reserves_gt_min_gen(sets, data, results)
