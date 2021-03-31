@@ -214,9 +214,9 @@ def check_storage_continiuity(sets, data, results):
                 if i == min(sets['intervals'].indices):
                     initial_energy_in_storage_MWh \
                         = data.initial_state['StorageLevel_frac'][u] \
-                             * data.units['StorageCap_h'][u] \
-                             * data.units['Capacity_MW'][u] \
-                             * data.units['NoUnits'][u]
+                        * data.units['StorageCap_h'][u] \
+                        * data.units['Capacity_MW'][u] \
+                        * data.units['NoUnits'][u]
 
                     net_flow = \
                         (
