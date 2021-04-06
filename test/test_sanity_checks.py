@@ -80,6 +80,112 @@ class economic_dispatch_sanity_checks(unittest.TestCase):
 
 
 class unit_commitment_sanity_checks(unittest.TestCase):
+    def test_minimum_down_time_is_respected_no_error(self):
+        ints_per_hour = 3
+        tM.settings['INTERVALS_PER_HOUR'] = ints_per_hour
+
+        tM.data.units.loc[:, 'NoUnits'] = 1
+
+        for u in tM.sets['units_commit'].indices:
+            tM.data.units.loc[u, 'MinDownTime_h'] = max(2, tM.data.units['MinDownTime_h'][u])
+            units_min_down_time = tM.data.units['MinDownTime_h'][u] * ints_per_hour
+
+            for s in tM.sets['scenarios'].indices:
+                tM.results['num_commited'].loc[:, (s, u)] = 1
+                tM.results['num_starting_up'].loc[:, (s, u)] = 0
+                tM.results['num_shutting_down'].loc[:, (s, u)] = 0
+
+                tM.results['num_shutting_down'].loc[2, (s, u)] = 1
+
+                for i in range(16, 16 + units_min_down_time):
+                    tM.results['num_commited'].loc[i, (s, u)] = 0
+
+        test_result, discard = \
+            scs.minimum_down_time_is_respected(tM.sets, tM.data, tM.results, tM.settings)
+
+        self.assertEqual(test_result, 0)
+
+    def test_minimum_down_time_is_respected_error(self):
+        counter = 0
+        ints_per_hour = 3
+        tM.settings['INTERVALS_PER_HOUR'] = ints_per_hour
+
+        tM.data.units.loc[:, 'NoUnits'] = 1
+
+        for u in tM.sets['units_commit'].indices:
+            tM.data.units.loc[u, 'MinDownTime_h'] = max(2, tM.data.units['MinDownTime_h'][u])
+            units_min_down_time = tM.data.units['MinDownTime_h'][u] * ints_per_hour
+
+            for s in tM.sets['scenarios'].indices:
+                counter += 1
+
+                tM.results['num_commited'].loc[:, (s, u)] = 1
+                tM.results['num_starting_up'].loc[:, (s, u)] = 0
+                tM.results['num_shutting_down'].loc[:, (s, u)] = 0
+
+                tM.results['num_shutting_down'].loc[2, (s, u)] = 1
+
+                for i in range(16, 16 + units_min_down_time - 1):
+                    tM.results['num_commited'].loc[i, (s, u)] = 0
+
+        test_result, discard = \
+            scs.minimum_down_time_is_respected(tM.sets, tM.data, tM.results, tM.settings)
+
+        self.assertEqual(test_result, counter)
+
+    def test_minimum_up_time_is_respected_no_error(self):
+        ints_per_hour = 3
+        tM.settings['INTERVALS_PER_HOUR'] = ints_per_hour
+
+        tM.data.units.loc[:, 'NoUnits'] = 1
+
+        for u in tM.sets['units_commit'].indices:
+            tM.data.units.loc[u, 'MinUpTime_h'] = max(2, tM.data.units['MinUpTime_h'][u])
+            units_min_up_time = tM.data.units['MinUpTime_h'][u] * ints_per_hour
+
+            for s in tM.sets['scenarios'].indices:
+                tM.results['num_commited'].loc[:, (s, u)] = 0
+                tM.results['num_starting_up'].loc[:, (s, u)] = 0
+                tM.results['num_shutting_down'].loc[:, (s, u)] = 0
+
+                tM.results['num_starting_up'].loc[2, (s, u)] = 1
+
+                for i in range(16, 16 + units_min_up_time):
+                    tM.results['num_commited'].loc[i, (s, u)] = 1
+
+        test_result, discard = \
+            scs.minimum_up_time_is_respected(tM.sets, tM.data, tM.results, tM.settings)
+
+        self.assertEqual(test_result, 0)
+
+    def test_minimum_up_time_is_respected_error(self):
+        ints_per_hour = 3
+        tM.settings['INTERVALS_PER_HOUR'] = ints_per_hour
+        counter = 0
+
+        tM.data.units.loc[:, 'NoUnits'] = 1
+
+        for u in tM.sets['units_commit'].indices:
+            tM.data.units.loc[u, 'MinUpTime_h'] = max(2, tM.data.units['MinUpTime_h'][u])
+            units_min_up_time = tM.data.units['MinUpTime_h'][u] * ints_per_hour
+
+            for s in tM.sets['scenarios'].indices:
+                counter += 1
+
+                tM.results['num_commited'].loc[:, (s, u)] = 0
+                tM.results['num_starting_up'].loc[:, (s, u)] = 0
+                tM.results['num_shutting_down'].loc[:, (s, u)] = 0
+
+                tM.results['num_starting_up'].loc[2, (s, u)] = 1
+
+                for i in range(10, 10 + units_min_up_time - 1):
+                    tM.results['num_commited'].loc[i, (s, u)] = 1
+
+        test_result, discard = \
+            scs.minimum_up_time_is_respected(tM.sets, tM.data, tM.results, tM.settings)
+
+        self.assertEqual(test_result, counter)
+
     def test_power_raise_reserves_lt_capacity_no_error(self):
         val = 0.1
 

@@ -1,4 +1,6 @@
 def process_error_msg(warnings, settings):
+    settings['PRINT_WARNINGS'] = True
+
     if settings['PRINT_WARNINGS']:
         for warning in warnings:
             print()
@@ -125,9 +127,11 @@ def minimum_up_time_is_respected(sets, data, results, settings):
 
     for u in sets['units_commit'].indices:
         minimum_up_time = data.units['MinUpTime_h'][u]
+
         for s in sets['scenarios'].indices:
             time_on = 0
             prev_commit_status = 0
+
             for i in sets['intervals'].indices:
                 current_commit_status = results['num_commited'].loc[i, (s, u)]
 
@@ -138,9 +142,12 @@ def minimum_up_time_is_respected(sets, data, results, settings):
                     if prev_commit_status == 1:
                         if i > i0 + minimum_up_time + settings['INTERVALS_PER_HOUR']:
                             if time_on < minimum_up_time * settings['INTERVALS_PER_HOUR']:
-                                warnings.append('Min up time error for unit', u, 'interval', i, 'scenario',
-                                    s, 'time on is', time_on, 'periods', 'min_up_time is',
-                                    minimum_up_time * settings['INTERVALS_PER_HOUR'], 'periods')
+                                warnings.append('Min up time error for unit' + u + 'interval' +
+                                                str(i) + 'scenario' + str(s) + 'time on is' +
+                                                str(time_on) + 'periods' + 'min_up_time is' +
+                                                str(minimum_up_time
+                                                    * settings['INTERVALS_PER_HOUR']) +
+                                                'periods')
                                 errors_count = errors_count + 1
 
                     time_on = 0
@@ -172,8 +179,13 @@ def minimum_down_time_is_respected(sets, data, results, settings):
                     if current_commit_status == 1:
                         if prev_commit_status == 0:
                             if time_off < minimum_down_time * settings['INTERVALS_PER_HOUR']:
-                                warnings.append('Min down time error for unit', u, 'interval', i,
-                                    'scenario', s)
+                                warnings.append('Min down time error for unit ' + u + ' interval '
+                                                + str(i) + ' scenario ' + str(s) + ' time off is '
+                                                + str(time_off) + ' periods ' +
+                                                ' min_down_time is ' +
+                                                str(minimum_down_time
+                                                    * settings['INTERVALS_PER_HOUR']) +
+                                                ' periods')
                                 errors_count = errors_count + 1
 
                         time_off = 0
@@ -305,16 +317,40 @@ def check_max_rocof(sets, results):
 
 
 def run_sanity_checks(sets, data, results, settings):
+    all_warnings = []
+
     errors_count, warnings = check_power_lt_capacity(sets, data, results)
+    all_warnings += warnings
+
     errors_count, warnings = total_gen_equals_demand(sets, results)
+    all_warnings += warnings
+
     errors_count, warnings = check_energy_charged_lt_charge_capacity(sets, data, results)
+    all_warnings += warnings
+
     errors_count, warnings = check_storage_continiuity(sets, data, results)
+    all_warnings += warnings
+
     errors_count, warnings = check_stored_energy_lt_storage_capacity(sets, data, results)
+    all_warnings += warnings
+
     errors_count, warnings = check_reserve_lt_capability(sets, data, results)
+    all_warnings += warnings
 
     if settings['INCL_UNIT_COMMITMENT']:
-        # errors_count, warnings = minimum_up_time_is_respected(sets, data, results, settings)
-        # errors_count, warnings = minimum_down_time_is_respected(sets, data, results, settings)
+        errors_count, warnings = minimum_up_time_is_respected(sets, data, results, settings)
+        all_warnings += warnings
+
+        errors_count, warnings = minimum_down_time_is_respected(sets, data, results, settings)
+        all_warnings += warnings
+
         errors_count, warnings = check_max_rocof(sets, results)
+        all_warnings += warnings
+
         errors_count, warnings = check_power_raise_reserves_lt_commit_cap(sets, data, results)
+        all_warnings += warnings
+
         errors_count, warnings = check_power_lower_reserves_gt_min_gen(sets, data, results)
+        all_warnings += warnings
+
+    process_error_msg(all_warnings, settings)

@@ -1,5 +1,4 @@
 ## Constraints
-* Think there is an error in the minimum up/down times.
 * Make constraints work for using the minimum up down times based on behaviour in the previous day.
 
 ## Sanity checks
