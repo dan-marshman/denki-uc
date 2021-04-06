@@ -2,7 +2,7 @@
 * Make constraints work for using the minimum up down times based on behaviour in the previous day.
 
 ## Sanity checks
-* Check the minimum up/down equations
+* The minimum up/down equations only work if there is only one unit built
 
 ## Denki series
 * Make link for initial state based on previous day, and minimum upd/down time from previous day.
