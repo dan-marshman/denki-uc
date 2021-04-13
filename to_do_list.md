@@ -8,4 +8,3 @@
 * Make link for initial state based on previous day, and minimum upd/down time from previous day.
 * Check that correct traces are being chosen. Try look_ahead_intervals longer than a day. 
 * Add functionality to resolve failed days
-

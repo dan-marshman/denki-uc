@@ -9,6 +9,7 @@ def add_custom_results(data, results, results_path, settings, sets):
     new_results['total_charge_load'] = add_total_charge_load(results, new_results)
     new_results['dispatch'] = add_dispatch_result(data, results, new_results)
     new_results['final_state'] = add_final_state(data, results, sets)
+    new_results = add_traces_to_new_results(data, new_results)
 
     if settings['INCL_UNIT_COMMITMENT']:
         new_results['inertia_dispatch'] = add_inertia_dispatch(data, results)
@@ -137,3 +138,10 @@ def add_final_state(data, results, sets):
             / (data.units['Capacity_MW'][u] * data.units['StorageCap_h'][u])
 
     return final_state
+
+
+def add_traces_to_new_results(data, new_results):
+    for trace_name, trace in data.traces.items():
+        new_results[trace_name] = trace
+
+    return new_results
