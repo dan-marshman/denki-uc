@@ -42,3 +42,16 @@ def get_resource_trace(scenario, region, technology, data):
         print('Technology not known')
         exit()
     return trace
+
+def print_preamble(name, path_to_inputs):
+    print()
+    print("-------------------------------------------------------------------------")
+    print()
+    print("Initiating UC model called", name)
+    print("Using database folder located at  ", path_to_inputs)
+
+
+def check_input_dir_exists(path_to_inputs):
+    if not os.path.exists(path_to_inputs):
+        print("Inputs path does not exist. Exiting")
+        return

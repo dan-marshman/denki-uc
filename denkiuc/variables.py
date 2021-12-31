@@ -1,49 +1,14 @@
 import pulp as pp
 
 
-def make_all_variables(sets):
-    vars = dict()
+class dkVar():
+    def __init__(self, name, units, sets, var_type='C'):
+        var_type_dict = {'C': 'Continuous', 'I': 'Integer', 'B': 'Binary'}
 
-    intervals_units = [sets['intervals'], sets['scenarios'], sets['units']]
-    vars['power_generated'] = dkVariable('power_generated', 'MW', intervals_units)
-
-    intervals_units_commit = [sets['intervals'], sets['scenarios'], sets['units_commit']]
-    vars['num_commited'] = \
-        dkVariable('num_commited', 'NumUnits', intervals_units_commit, 'Integer')
-    vars['inertia_provided'] = \
-        dkVariable('inertia_provided', 'MW.s', intervals_units_commit)
-    vars['is_committed'] = \
-        dkVariable('is_committed', 'Binary', intervals_units_commit, 'Binary')
-    vars['num_shutting_down'] = \
-        dkVariable('num_shutting_down', 'NumUnits', intervals_units_commit, 'Integer')
-    vars['num_starting_up'] = \
-        dkVariable('num_starting_up', 'NumUnits', intervals_units_commit, 'Integer')
-
-    intervals_units_reserves = \
-        [sets['intervals'], sets['scenarios'], sets['units'], sets['reserves']]
-    vars['reserve_enabled'] = \
-        dkVariable('reserve_enabled', 'MW', intervals_units_reserves)
-
-    intervals_units_storage = [sets['intervals'], sets['scenarios'], sets['units_storage']]
-    vars['charge_after_losses'] = dkVariable('charge_after_losses', 'MW', intervals_units_storage)
-    vars['energy_in_reservoir'] = dkVariable('energy_in_reservoir', 'MWh', intervals_units_storage)
-
-    vars['unserved_inertia'] = dkVariable('unserved_inertia', 'MW.s', [sets['intervals']])
-    vars['unserved_power'] = \
-        dkVariable('unserved_power', 'MW', [sets['intervals'], sets['scenarios']])
-
-    intervals_scenarios_reserves = [sets['intervals'], sets['scenarios'], sets['reserves']]
-    vars['unserved_reserve'] = dkVariable('unserved_reserve', 'MW', intervals_scenarios_reserves)
-
-    return vars
-
-
-class dkVariable():
-    def __init__(self, name, units, sets, var_type='Continuous'):
         self.name = name
         self.units = units
         self.sets = sets
-        self.type = var_type
+        self.type = var_type_dict[var_type]
         self.sets_indices = self.make_var_indices(sets)
         self.var = self.make_pulp_variable(self.sets_indices)
 

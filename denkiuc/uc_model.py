@@ -8,34 +8,34 @@ import sys
 
 class ucModel():
     def __init__(self, name, path_to_inputs):
-        print()
-        print("-------------------------------------------------------------------------")
-        print()
-
         self.name = name
-        self.path_to_inputs = path_to_inputs
-        print("Initiating UC model called", self.name)
-        print("Using database folder located at   ", path_to_inputs)
+        self.paths = {'inputs': path_to_inputs}
 
-        if not os.path.exists(self.path_to_inputs):
-            print("Inputs path does not exist. Exiting")
-            return
-
+    def prepare_model(self):
+        mf.check_input_dir_exists(self.paths['inputs'])
+        self.load_settings()
         self.load_data()
+        self.arrange_sets_and_data()
+        self.make_results_dict()
+        self.add_variables()
+        self.build_model()
+        exit()
+
+    def load_settings(self):
+        self.settings = ld.load_settings(self.paths['inputs'])
+        self.paths['outputs'] = os.path.join(self.settings['OUTPUTS_PATH'], self.name)
+        mf.make_folder(self.paths['outputs'])
+        mf.set_logger_path(self.paths['outputs'])
 
     def load_data(self):
-        self.settings = ld.load_settings(self.path_to_inputs)
-        self.data = ld.Data(self.path_to_inputs)
-        self.path_to_outputs = os.path.join(self.settings['OUTPUTS_PATH'], self.name)
-        mf.make_folder(self.path_to_outputs)
-        mf.set_logger_path(self.path_to_outputs)
-        self.results = dict()
+        self.data = ld.Data(self.paths['inputs'])
 
-    def arrange_data(self):
+    def arrange_sets_and_data(self):
         self.sets = ld.load_master_sets(self.data, self.settings)
         self.sets = ld.load_unit_subsets(self.data, self.sets)
         self.sets = ld.add_reserve_subsets(self.sets)
         self.sets = ld.load_interval_subsets(self.settings, self.sets)
+
         self.data.probability_of_scenario = ld.define_scenario_probability(self.sets['scenarios'])
         self.data.add_arma_scenarios(self.sets['scenarios'], self.settings['RANDOM_SEED'])
 
@@ -45,11 +45,46 @@ class ucModel():
         self.data.add_default_values(self.sets)
         self.data.replace_reserve_requirement_index()
 
-        self.vars = va.make_all_variables(self.sets)
+        print("\n---- Parameters and sets are ready ----\n")
 
-        self.build_model()
+    def make_results_dict(self):
+        self.results = dict()
 
-        print("\n---- Model built ----\n")
+    def add_variables(self):
+        vars = dict()
+        sets = self.sets
+
+        m_sets = \
+            {
+                'in': [sets['intervals']],
+                'in_sc': [sets['intervals'], sets['scenarios']],
+                'in_sc_un': [sets['intervals'], sets['scenarios'], sets['units']],
+                'in_sc_unco': [sets['intervals'], sets['scenarios'], sets['units_commit']],
+                'in_sc_unst': [sets['intervals'], sets['scenarios'], sets['units_storage']],
+                'in_sc_un_re': [sets['intervals'], sets['scenarios'], sets['units'], sets['reserves']],
+                'in_sc_re': [sets['intervals'], sets['scenarios'], sets['reserves']]
+            }
+
+        vars['power_generated'] = va.dkVar('power_generated', 'MW', m_sets['in_sc_un'])
+
+        vars['num_commited'] = va.dkVar('num_commited', 'NumUnits', m_sets['in_sc_unco'], 'I')
+        vars['inertia_provided'] = va.dkVar('inertia_provided', 'MW.s', m_sets['in_sc_unco'])
+        vars['is_committed'] = va.dkVar('is_committed', 'Binary', m_sets['in_sc_unco'], 'B')
+        vars['num_shutting_down'] = va.dkVar('num_shutting_down', 'NumUnits', m_sets['in_sc_unco'], 'I')
+        vars['num_starting_up'] = va.dkVar('num_starting_up', 'NumUnits', m_sets['in_sc_unco'], 'I')
+
+        vars['reserve_enabled'] = va.dkVar('reserve_enabled', 'MW', m_sets['in_sc_un_re'])
+
+        vars['charge_after_losses'] = va.dkVar('charge_after_losses', 'MW', m_sets['in_sc_unst'])
+        vars['energy_in_reservoir'] = va.dkVar('energy_in_reservoir', 'MWh', m_sets['in_sc_unst'])
+
+        vars['unserved_inertia'] = va.dkVar('unserved_inertia', 'MW.s', m_sets['in'])
+
+        vars['unserved_power'] = va.dkVar('unserved_power', 'MW', m_sets['in_sc'])
+
+        vars['unserved_reserve'] = va.dkVar('unserved_reserve', 'MW', m_sets['in_sc_re'])
+
+        self.vars = vars
 
     def run_model(self):
         self.solve_model()
@@ -65,7 +100,7 @@ class ucModel():
         self.mod = pp.LpProblem(self.name, sense=pp.LpMinimize)
         self.mod += obj.obj_fn(self.sets, self.data, self.vars, self.settings)
 
-        self.constraints_df = cnsts.create_constraints_df(self.path_to_inputs)
+        self.constraints_df = cnsts.create_constraints_df(self.paths['inputs'])
         self.mod = cnsts.add_all_constraints_to_dataframe(self.sets,
                                                           self.data,
                                                           self.vars,
@@ -100,9 +135,9 @@ class ucModel():
     def store_results(self):
         import denkiuc.add_custom_results as acs
 
-        path_to_results = os.path.join(self.path_to_outputs, 'results')
+        self.paths['results'] = os.path.join(self.paths['outputs'], 'results')
 
-        os.makedirs(path_to_results)
+        os.makedirs(self.paths['results'])
 
         for name, dkvar in self.vars.items():
             dkvar.to_df()
@@ -111,14 +146,14 @@ class ucModel():
             dkvar.remove_look_ahead_int_from_results(self.sets['main_intervals'].indices)
 
             if self.settings['WRITE_RESULTS_WITH_LOOK_AHEAD']:
-                dkvar.write_to_file(path_to_results, removed_la=False)
+                dkvar.write_to_file(self.paths['results'], removed_la=False)
 
             if self.settings['WRITE_RESULTS_WITHOUT_LOOK_AHEAD']:
-                dkvar.write_to_file(path_to_results, removed_la=True)
+                dkvar.write_to_file(self.paths['results'], removed_la=True)
 
         self.results = acs.add_custom_results(self.data,
                                               self.results,
-                                              path_to_results,
+                                              self.paths['results'],
                                               self.settings,
                                               self.sets)
 
