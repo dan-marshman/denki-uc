@@ -51,7 +51,7 @@ class ucModel():
 
         print("\n---- Model built ----\n")
 
-    def solve(self):
+    def run_model(self):
         self.solve_model()
         self.store_results()
         self.sanity_check_solution()
@@ -133,6 +133,10 @@ path_to_examples = os.path.join(os.path.dirname(path_to_denki), 'examples')
 path_to_tests = os.path.join(os.path.dirname(path_to_denki), 'test')
 
 if __name__ == '__main__':
+    if len(sys.argv) <= 1:
+        print("Missing path to input folder as an argument")
+        exit()
+
     name = sys.argv[1]
     path_to_inputs = sys.argv[2]
     model = ucModel(name, path_to_inputs)
