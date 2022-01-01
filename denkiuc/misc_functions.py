@@ -55,3 +55,10 @@ def check_input_dir_exists(path_to_inputs):
     if not os.path.exists(path_to_inputs):
         print("Inputs path does not exist. Exiting")
         return
+        def exit_if_infeasible(status):
+            if status == 'Infeasible':
+                print("\n", self.name, 'was infeasible. Exiting.')
+
+def exit_if_infeasible(status):
+    if status == 'Infeasible':
+        print("\n", self.name, 'was infeasible. Exiting.')

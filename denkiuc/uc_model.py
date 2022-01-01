@@ -35,6 +35,7 @@ class ucModel():
         self.sets = ld.load_unit_subsets(self.data, self.sets)
         self.sets = ld.add_reserve_subsets(self.sets)
         self.sets = ld.load_interval_subsets(self.settings, self.sets)
+        self.m_sets = ld.make_multi_sets(self.sets)
 
         self.data.probability_of_scenario = ld.define_scenario_probability(self.sets['scenarios'])
         self.data.add_arma_scenarios(self.sets['scenarios'], self.settings['RANDOM_SEED'])
@@ -52,18 +53,7 @@ class ucModel():
 
     def add_variables(self):
         vars = dict()
-        sets = self.sets
-
-        m_sets = \
-            {
-                'in': [sets['intervals']],
-                'in_sc': [sets['intervals'], sets['scenarios']],
-                'in_sc_un': [sets['intervals'], sets['scenarios'], sets['units']],
-                'in_sc_unco': [sets['intervals'], sets['scenarios'], sets['units_commit']],
-                'in_sc_unst': [sets['intervals'], sets['scenarios'], sets['units_storage']],
-                'in_sc_un_re': [sets['intervals'], sets['scenarios'], sets['units'], sets['reserves']],
-                'in_sc_re': [sets['intervals'], sets['scenarios'], sets['reserves']]
-            }
+        m_sets = self.m_sets
 
         vars['power_generated'] = va.dkVar('power_generated', 'MW', m_sets['in_sc_un'])
 
@@ -111,17 +101,15 @@ class ucModel():
     def solve_model(self):
         import time
 
-        def exit_if_infeasible(status):
-            if status == 'Infeasible':
-                print("\n", self.name, 'was infeasible. Exiting.')
-
         print('Begin solving the model')
 
         time_start_solve = time.perf_counter()
+
         self.mod.solve(pp.PULP_CBC_CMD(timeLimit=5,
                                        threads=0,
                                        msg=0,
                                        gapRel=0.01))
+
         time_end_solve = time.perf_counter()
         self.solver_time = time_end_solve - time_start_solve
 

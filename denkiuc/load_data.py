@@ -87,16 +87,17 @@ def load_unit_subsets(data, sets):
     units_commit = create_unit_subsets('Commit', data, sets['units'])
     units_storage = create_unit_subsets('Storage', data, sets['units'])
     units_variable = create_unit_subsets('Variable', data, sets['units'])
+    units_renewable = create_unit_subsets('Renewable', data, sets['units'])
 
     sets['units_commit'] = dkSet('units_commit', units_commit, sets['units'])
     sets['units_storage'] = dkSet('units_storage', units_storage, sets['units'])
     sets['units_variable'] = dkSet('units_variable', units_variable, sets['units'])
 
-    units_inflexible = create_unit_subsets('Inflexible', data, sets['units_commit'])
-    units_flexible = create_unit_subsets('Flexible', data, sets['units_commit'])
+    units_inflex = create_unit_subsets('Inflexible', data, sets['units_commit'])
+    units_flex = create_unit_subsets('Flexible', data, sets['units_commit'])
 
-    sets['units_inflexible'] = dkSet('units_inflexible', units_inflexible, sets['units_commit'])
-    sets['units_flexible'] = dkSet('units_flexible', units_flexible, sets['units_commit'])
+    sets['units_inflex'] = dkSet('units_inflex', units_inflex, sets['units_commit'])
+    sets['units_flex'] = dkSet('units_flex', units_flex, sets['units_commit'])
 
     return sets
 
@@ -133,23 +134,47 @@ def load_interval_subsets(settings, sets):
     return sets
 
 
+def make_multi_sets(sets):
+    m_sets = \
+        {
+            'in': [sets['intervals']],
+            'in_sc': [sets['intervals'], sets['scenarios']],
+            'in_sc_un': [sets['intervals'], sets['scenarios'], sets['units']],
+            'in_sc_unco': [sets['intervals'], sets['scenarios'], sets['units_commit']],
+            'in_sc_unst': [sets['intervals'], sets['scenarios'], sets['units_storage']],
+            'in_sc_un_re': [sets['intervals'], sets['scenarios'], sets['units'], sets['reserves']],
+            'in_sc_re': [sets['intervals'], sets['scenarios'], sets['reserves']]
+        }
+
+    return m_sets
+
+
 def create_unit_subsets(subset, data, units):
-    filename = 'technology_categories.csv'
-    path_to_db_tech_cat_file = os.path.join(data.path_to_inputs, filename)
+    def read_tech_categories_file():
+        filename = 'technology_categories.csv'
+        path_to_db_tech_cat_file = os.path.join(data.path_to_inputs, filename)
 
-    if os.path.exists(path_to_db_tech_cat_file):
-        tech_categories_df = pd.read_csv(path_to_db_tech_cat_file, index_col=0)
-    else:
-        tech_categories_df = load_default_file(filename)
+        if os.path.exists(path_to_db_tech_cat_file):
+            tech_categories_df = pd.read_csv(path_to_db_tech_cat_file, index_col=0)
+        else:
+            tech_categories_df = load_default_file(filename)
 
-    subset_list = []
+        return tech_categories_df
 
-    for u in units.indices:
-        unit_tech = data.units['Technology'][u]
-        if tech_categories_df[subset][unit_tech] == 1:
-            subset_list.append(u)
+    def add_indices_to_subset():
+        subset_indices = []
 
-    return subset_list
+        for u in units.indices:
+            unit_tech = data.units['Technology'][u]
+            if tech_categories_df[subset][unit_tech] == 1:
+                subset_indices.append(u)
+
+        return subset_indices
+
+    tech_categories_df = read_tech_categories_file()
+    subset_indices = add_indices_to_subset()
+
+    return subset_indices
 
 
 def define_scenario_probability(scenarios):
