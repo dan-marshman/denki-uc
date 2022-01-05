@@ -62,7 +62,7 @@ class dkSet():
 def load_master_sets(data, settings):
     sets = dict()
 
-    sets['intervals'] = dkSet('intervals', data.orig_traces['demand'].index.to_list())
+    sets['intervals'] = dkSet('intervals', data.traces['demand'].index.to_list())
     sets['units'] = dkSet('units', data.units.index.to_list())
     sets['scenarios'] = dkSet('scenarios', list(range(settings['NUM_SCENARIOS'])))
 
@@ -181,15 +181,41 @@ def define_scenario_probability(scenarios):
 
 
 class Data:
-    def __init__(self, path_to_inputs):
+    def __init__(self, path_to_inputs, settings):
         self.missing_values = dict()
+        self.traces = dict()
 
         self.path_to_inputs = path_to_inputs
-        self.load_traces()
+        self.num_scenarios = settings['NUM_SCENARIOS']
+        self.load_stochastic_traces(settings)
         self.load_ancillary_service_requirements()
         self.load_unit_data()
         self.load_initial_state()
-        self.load_arma_values()
+
+    def load_stochastic_traces(self, settings):
+        import denkiuc.arma_generator as ag
+        import sqlite3
+
+        arma_out_dir = os.path.join(self.path_to_inputs, 'arma_traces')
+        suitable_arma_db_found = False
+        for db_file in os.listdir(arma_out_dir):
+            if int(db_file[0:3]) >= settings['NUM_SCENARIOS']:
+                break
+
+        if suitable_arma_db_found is False:
+            db_file = '%03d_arma_traces.db' % settings['NUM_SCENARIOS']
+            ag.run_arma_model(self.path_to_inputs,
+                              settings['NUM_SCENARIOS'],
+                              settings['RANDOM_SEED'])
+
+        arma_db_path = os.path.join(arma_out_dir, db_file)
+
+        db_connection = sqlite3.connect(arma_db_path)
+        for trace_name in ['wind', 'solarPV', 'demand']:
+            query = 'select * from %s' % trace_name
+            self.traces[trace_name] = pd.read_sql_query(query, db_connection, index_col='Interval')
+            exit()
+        db_connection.close()
 
     def load_unit_data(self):
         unit_data_path = os.path.join(self.path_to_inputs, 'unit_data.csv')
@@ -271,5 +297,5 @@ class Data:
                 pd.DataFrame(0, index=sets['intervals'].indices, columns=sets['reserves'])
 
     def replace_reserve_requirement_index(self):
-        first_trace = list(self.orig_traces.keys())[0]
-        self.reserve_requirement.index = self.orig_traces[first_trace].index
+        first_trace = list(self.traces.keys())[0]
+        self.reserve_requirement.index = self.traces[first_trace].index

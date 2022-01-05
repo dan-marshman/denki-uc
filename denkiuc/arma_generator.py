@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import denkiuc.misc_functions as mf
+import sys
 
 
 path_to_denki = os.path.dirname(os.path.abspath(__file__))
@@ -10,7 +11,7 @@ path_to_tests = os.path.join(os.path.dirname(path_to_denki), 'test')
 
 def main(paramters):
     trace_locations = load_trace_locations(paramters['INPUT_FOLDER'])
-    deterministic_traces = load_traces(trace_locations, paramters['INPUT_FOLDER'])
+    deterministic_traces = load_deterministic_traces(trace_locations, paramters['INPUT_FOLDER'])
     arma_vals_df = load_arma_values(paramters['INPUT_FOLDER'])
     stochastic_traces = add_arma_scenarios(paramters, deterministic_traces, arma_vals_df)
     write_traces_to_sql(stochastic_traces, paramters)
@@ -22,7 +23,7 @@ def load_trace_locations(INPUT_FOLDER):
     return trace_locations
 
 
-def load_traces(trace_locations, INPUT_FOLDER):
+def load_deterministic_traces(trace_locations, INPUT_FOLDER):
     deterministic_traces = dict()
     trace_names = trace_locations['TraceName'].to_list()
 
@@ -55,7 +56,7 @@ def add_arma_scenarios(paramters, deterministic_traces, arma_vals_df):
 
     def fill_arma_vals(scenario_indices, new_traces, deterministic_trace):
         for scenario in scenario_indices[1:]:
-            new_traces.loc[:, (scenario, region)] = deterministic_trace[region]
+            new_traces.loc[:, scenario] = deterministic_trace
 
             forecast_error = [0] * len(new_traces)
 
@@ -67,11 +68,9 @@ def add_arma_scenarios(paramters, deterministic_traces, arma_vals_df):
                     + distribution[j+1] + distribution[j] * arma_beta
 
                 if trace_name == 'demand':
-                    new_traces.loc[i, (scenario, region)] = \
-                        (1 + forecast_error[j+1]) * new_traces.loc[i, (0, region)]
+                    new_traces.loc[i, scenario] = (1 + forecast_error[j+1]) * new_traces.loc[i, 0]
                 elif trace_name in ['wind', 'solarPV']:
-                    new_traces.loc[i, (scenario, region)] = \
-                        forecast_error[j+1] + new_traces.loc[i, (0, region)]
+                    new_traces.loc[i, scenario] = forecast_error[j+1] + new_traces.loc[i, 0]
 
         return new_traces
 
@@ -88,20 +87,16 @@ def add_arma_scenarios(paramters, deterministic_traces, arma_vals_df):
     scenario_indices = list(range(paramters['NUM_SCENARIOS']))
 
     for trace_name, deterministic_trace in deterministic_traces.items():
-
-        df_cols = pd.MultiIndex.from_product([scenario_indices, deterministic_trace.columns])
-        df_cols = df_cols.set_names(['Scenario', 'Region'])
-        new_traces = pd.DataFrame(index=deterministic_trace.index, columns=df_cols)
+        deterministic_trace = deterministic_trace.iloc[:, 0]
+        new_traces = pd.DataFrame(index=deterministic_trace.index, columns=scenario_indices)
 
         arma_alpha = arma_vals_df[trace_name]['alpha']
         arma_beta = arma_vals_df[trace_name]['beta']
         arma_sigma = arma_vals_df[trace_name]['sigma']
 
-        for region in deterministic_trace.columns:
-            new_traces.loc[:, (0, region)] = deterministic_trace[region]
-            new_traces = \
-                fill_arma_vals(scenario_indices, new_traces, deterministic_trace)
-            new_traces = enforce_limits(new_traces, trace_name)
+        new_traces.loc[:, 0] = deterministic_trace.iloc[0]
+        new_traces = fill_arma_vals(scenario_indices, new_traces, deterministic_trace)
+        new_traces = enforce_limits(new_traces, trace_name)
         new_traces.round(5)
 
         stochastic_traces[trace_name] = new_traces
@@ -125,16 +120,29 @@ def write_traces_to_sql(stochastic_traces, paramters):
     db_connection.close()
 
 
-if __name__ == '__main__':
-    path_to_test1 = os.path.join(path_to_examples, 'test1')
-    NUM_SCENARIOS = 3
-    RANDOM_SEED = 0
+def run_arma_model(PATH_TO_INPUTS, NUM_SCENARIOS, RANDOM_SEED=0):
 
     paramters = \
         {
-            'INPUT_FOLDER': path_to_test1,
+            'INPUT_FOLDER': PATH_TO_INPUTS,
             'NUM_SCENARIOS': NUM_SCENARIOS,
             'RANDOM_SEED': RANDOM_SEED
          }
 
     main(paramters)
+
+
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print("Not enough arguments. Should be 1) path to folder 2) number of scenarios and 3)",
+              " (optional) random seed.")
+
+    PATH_TO_INPUTS = sys.argv[1]
+    NUM_SCENARIOS = sys.argv[2]
+
+    if len(sys.argv) > 3:
+        RANDOM_SEED = sys.argv[3]
+    else:
+        RANDOM_SEED = 0
+
+    run_arma_model(PATH_TO_INPUTS, NUM_SCENARIOS, RANDOM_SEED)

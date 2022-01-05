@@ -28,7 +28,7 @@ class ucModel():
         mf.set_logger_path(self.paths['outputs'])
 
     def load_data(self):
-        self.data = ld.Data(self.paths['inputs'])
+        self.data = ld.Data(self.paths['inputs'], self.settings)
 
     def arrange_sets_and_data(self):
         self.sets = ld.load_master_sets(self.data, self.settings)
@@ -38,7 +38,6 @@ class ucModel():
         self.m_sets = ld.make_multi_sets(self.sets)
 
         self.data.probability_of_scenario = ld.define_scenario_probability(self.sets['scenarios'])
-        self.data.add_arma_scenarios(self.sets['scenarios'], self.settings['RANDOM_SEED'])
 
         if not self.data.missing_values['initial_state']:
             self.data.validate_initial_state_data(self.sets)
@@ -60,8 +59,10 @@ class ucModel():
         vars['num_commited'] = va.dkVar('num_commited', 'NumUnits', m_sets['in_sc_unco'], 'I')
         vars['inertia_provided'] = va.dkVar('inertia_provided', 'MW.s', m_sets['in_sc_unco'])
         vars['is_committed'] = va.dkVar('is_committed', 'Binary', m_sets['in_sc_unco'], 'B')
-        vars['num_shutting_down'] = va.dkVar('num_shutting_down', 'NumUnits', m_sets['in_sc_unco'], 'I')
-        vars['num_starting_up'] = va.dkVar('num_starting_up', 'NumUnits', m_sets['in_sc_unco'], 'I')
+        vars['num_shutting_down'] = \
+            va.dkVar('num_shutting_down', 'NumUnits', m_sets['in_sc_unco'], 'I')
+        vars['num_starting_up'] = \
+            va.dkVar('num_starting_up', 'NumUnits', m_sets['in_sc_unco'], 'I')
 
         vars['reserve_enabled'] = va.dkVar('reserve_enabled', 'MW', m_sets['in_sc_un_re'])
 
@@ -115,7 +116,7 @@ class ucModel():
 
         self.optimality_status = pp.LpStatus[self.mod.status]
         print('Model status: %s' % self.optimality_status)
-        exit_if_infeasible(self.optimality_status)
+        mf.exit_if_infeasible(self.optimality_status)
 
         self.opt_fn_value = self.mod.objective.value()
         print('Objective function = %f' % self.opt_fn_value)

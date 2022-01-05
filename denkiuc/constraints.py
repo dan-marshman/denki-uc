@@ -12,7 +12,7 @@ def constr_supply_eq_demand(sets, data, vars, mod):
                            for u in sets['units'].indices])
                  + vars['unserved_power'].var[(i, s)]
                  ==
-                 data.traces['demand'][(s, 'Demand')][i]
+                 data.traces['demand'][s][i]
                  + pp.lpSum([vars['charge_after_losses'].var[(i, s, u)]
                              * (1 / data.units['RTEfficiency'][u])
                              for u in sets['units_storage'].indices])
@@ -426,33 +426,33 @@ def create_constraints_df(path_to_inputs):
 
 
 def add_basic_constraints(sets, data, vars, mod):
-    mod = supply_eq_demand(sets, data, vars, mod)
-    mod = meet_reserve_requirement(sets, data, vars, mod)
-    mod = power_lt_capacity(sets, data, vars, mod)
-    mod = intermittent_resource_availability(sets, data, vars, mod)
-    mod = maximum_reserve_enablement(sets, data, vars, mod)
+    mod = constr_supply_eq_demand(sets, data, vars, mod)
+    mod = constr_meet_reserve_requirement(sets, data, vars, mod)
+    mod = constr_power_lt_capacity(sets, data, vars, mod)
+    mod = constr_intermittent_resource_availability(sets, data, vars, mod)
+    mod = constr_maximum_reserve_enablement(sets, data, vars, mod)
 
     return mod
 
 
 def add_uc_constraints(sets, data, vars, mod, settings):
-    mod = commitment_continuity(sets, data, vars, mod)
-    mod = max_units_committed(sets, data, vars, mod)
-    mod = power_lt_committed_capacity(sets, data, vars, mod)
-    mod = power_gt_min_stable_gen(sets, data, vars, mod)
-    mod = minimum_up_time(sets, data, vars, mod, settings)
-    mod = minimum_down_time(sets, data, vars, mod, settings)
-    mod = limit_rocof(sets, data, vars, mod, settings)
-    mod = define_is_committed(sets, data, vars, mod)
+    mod = constr_commitment_continuity(sets, data, vars, mod)
+    mod = constr_max_units_committed(sets, data, vars, mod)
+    mod = constr_power_lt_committed_capacity(sets, data, vars, mod)
+    mod = constr_power_gt_min_stable_gen(sets, data, vars, mod)
+    mod = constr_minimum_up_time(sets, data, vars, mod, settings)
+    mod = constr_minimum_down_time(sets, data, vars, mod, settings)
+    mod = constr_limit_rocof(sets, data, vars, mod, settings)
+    mod = constr_define_is_committed(sets, data, vars, mod)
 
     return mod
 
 
 def add_storage_constraints(sets, data, vars, mod, settings):
-    mod = energy_storage_continuity(sets, data, vars, mod, settings)
-    mod = energy_storage_continuity_first_interval(sets, data, vars, mod, settings)
-    mod = max_stored_energy(sets, data, vars, mod)
-    mod = max_charge(sets, data, vars, mod)
+    mod = constr_energy_storage_continuity(sets, data, vars, mod, settings)
+    mod = constr_energy_storage_continuity_first_interval(sets, data, vars, mod, settings)
+    mod = constr_max_stored_energy(sets, data, vars, mod)
+    mod = constr_max_charge(sets, data, vars, mod)
 
     return mod
 
