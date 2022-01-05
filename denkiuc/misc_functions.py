@@ -41,9 +41,9 @@ def get_max_reserves_per_unit(unit, reserve, unit_data):
 
 def get_resource_trace(scenario, region, technology, data):
     if technology == 'Wind':
-        trace = data.traces['wind'][(scenario, 'Wind')].to_dict()
+        trace = data.traces['wind'][scenario].to_dict()
     elif technology == 'SolarPV':
-        trace = data.traces['solarPV'][(scenario, 'Solar')].to_dict()
+        trace = data.traces['solarPV'][scenario].to_dict()
     else:
         print('Technology not known')
         exit()

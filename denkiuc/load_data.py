@@ -197,7 +197,9 @@ class Data:
         import sqlite3
 
         arma_out_dir = os.path.join(self.path_to_inputs, 'arma_traces')
+
         suitable_arma_db_found = False
+
         for db_file in os.listdir(arma_out_dir):
             if int(db_file[0:3]) >= settings['NUM_SCENARIOS']:
                 break
@@ -214,7 +216,7 @@ class Data:
         for trace_name in ['wind', 'solarPV', 'demand']:
             query = 'select * from %s' % trace_name
             self.traces[trace_name] = pd.read_sql_query(query, db_connection, index_col='Interval')
-            exit()
+            self.traces[trace_name].columns = self.traces[trace_name].columns.map(int)
         db_connection.close()
 
     def load_unit_data(self):
