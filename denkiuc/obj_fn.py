@@ -1,43 +1,39 @@
 import pulp as pp
 
 
-def physical_obj_fn_terms(sets, data, vars, settings):
-    physical_obj_fn = \
-        build_obj_vom_term(sets, data, vars, settings) \
-        + build_obj_fuel_term(sets, data, vars, settings) \
-        + build_obj_start_cost_term(sets, data, vars)
-    return physical_obj_fn
-
-
 def build_obj_vom_term(sets, data, vars, settings):
-    obj_vom = \
+    obj_vom_cost = \
         pp.lpSum(
                  [vars['power_generated'].var[(i, s, u)] * data.units['VOM_$pMWh'][u]
                   * data.probability_of_scenario[s]
                   for i in sets['intervals'].indices
-                  for u in sets['units'].indices for s in sets['scenarios'].indices]
+                  for u in sets['units'].indices
+                  for s in sets['scenarios'].indices]
                 )
-    obj_vom /= settings['INTERVALS_PER_HOUR']
 
-    return obj_vom
+    obj_vom_cost /= settings['INTERVALS_PER_HOUR']
+
+    return obj_vom_cost
 
 
 def build_obj_fuel_term(sets, data, vars, settings):
-    obj_fuel = \
+    obj_fuel_cost = \
         pp.lpSum(
                  [vars['power_generated'].var[(i, s, u)]
                   * 3.6 * data.units['FuelCost_$pGJ'][u] / data.units['ThermalEfficiency'][u]
                   * data.probability_of_scenario[s]
                   for i in sets['intervals'].indices
-                  for u in sets['units_commit'].indices for s in sets['scenarios'].indices]
+                  for u in sets['units_commit'].indices
+                  for s in sets['scenarios'].indices]
                 )
-    obj_fuel /= settings['INTERVALS_PER_HOUR']
 
-    return obj_fuel
+    obj_fuel_cost /= settings['INTERVALS_PER_HOUR']
+
+    return obj_fuel_cost
 
 
 def build_obj_start_cost_term(sets, data, vars):
-    obj_start_ups = \
+    obj_start_up_cost = \
         pp.lpSum(
                  [vars['num_starting_up'].var[(i, s, u)] * data.units['StartCost_$'][u]
                   for i in sets['intervals'].indices
@@ -45,7 +41,39 @@ def build_obj_start_cost_term(sets, data, vars):
                   for u in sets['units_commit'].indices]
                 )
 
-    return obj_start_ups
+    return obj_start_up_cost
+
+
+def build_obj_rec_value_term(sets, data, vars, settings):
+    obj_rec_value = \
+        pp.lpSum(
+                 [vars['power_generated'].var[(i, s, u)] * settings['REC_PRICE']
+                  * data.probability_of_scenario[s]
+                  for i in sets['intervals'].indices
+                  for u in sets['units_renewable'].indices
+                  for s in sets['scenarios'].indices]
+                )
+
+    obj_rec_value /= settings['INTERVALS_PER_HOUR']
+
+    return obj_rec_value
+
+
+def build_obj_carbon_price_term(sets, data, vars, settings):
+    obj_rec_value = \
+        pp.lpSum(
+                 [vars['power_generated'].var[(i, s, u)]
+                  * 3.6 * data.units['Emissions_tonneCO2epGJ'][u] / data.units['ThermalEfficiency'][u]
+                  * settings['CARBON_PRICE']
+                  * data.probability_of_scenario[s]
+                  for i in sets['intervals'].indices
+                  for u in sets['units_thermal'].indices
+                  for s in sets['scenarios'].indices]
+                )
+
+    obj_rec_value /= settings['INTERVALS_PER_HOUR']
+
+    return obj_rec_value
 
 
 def unserved_obj_fn_terms(sets, data, vars, settings):
@@ -71,14 +99,26 @@ def unserved_obj_fn_terms(sets, data, vars, settings):
                   for i in sets['intervals'].indices]
                 )
 
-    unserved_terms = \
+    obj_unserved_penalties = \
         (obj_uns_power + obj_uns_reserve + obj_uns_inertia) / settings['INTERVALS_PER_HOUR']
 
-    return unserved_terms
+    return obj_unserved_penalties
 
 
 def obj_fn(sets, data, vars, settings):
+    obj_vom_cost = build_obj_vom_term(sets, data, vars, settings)
+    obj_fuel_cost = build_obj_fuel_term(sets, data, vars, settings)
+    obj_start_up_cost = build_obj_start_cost_term(sets, data, vars)
+
+    obj_unserved_penalties = unserved_obj_fn_terms(sets, data, vars, settings)
+
+    obj_rec_value = build_obj_rec_value_term(sets, data, vars, settings)
+    obj_carbon_cost = build_obj_carbon_price_term(sets, data, vars, settings)
+
     obj_fn = \
-        physical_obj_fn_terms(sets, data, vars, settings) \
-        + unserved_obj_fn_terms(sets, data, vars, settings)
+        (obj_vom_cost + obj_fuel_cost + obj_start_up_cost) \
+        + obj_unserved_penalties \
+        + obj_carbon_cost \
+        - obj_rec_value
+
     return obj_fn

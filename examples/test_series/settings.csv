@@ -18,3 +18,4 @@ MAX_ROCOF,20,float,Maximum rate of change of frequency
 INTERVALS_PER_DAY,48,int,Total number of intervals per day (including look-ahead)
 PRINT_WARNINGS,True,bool,Print warnings as they occur
 REC_PRICE,40,float,Price of Renewable Energy Certificates in $/MWh
+CARBON_PRICE,20,float,Price of carbon emissions in $/tCO2e

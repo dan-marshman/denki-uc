@@ -2,6 +2,10 @@ import logging
 import os
 import shutil
 import sys
+import pandas as pd
+
+module_path = os.path.split(os.path.abspath(__file__))[0]
+default_files_path = os.path.join(module_path, 'default_files')
 
 
 def set_logger_path(path_to_outputs):
@@ -10,10 +14,12 @@ def set_logger_path(path_to_outputs):
         logging.basicConfig(filename=logger_path, level=logging.WARNING)
 
 
-def make_folder(path_to_outputs):
+def make_folder(path_to_outputs, keep_existing=False):
     if os.path.exists(path_to_outputs):
-        shutil.rmtree(path_to_outputs)
-
+        if keep_existing is True:
+            return
+        else:
+            shutil.rmtree(path_to_outputs)
     os.makedirs(path_to_outputs)
 
 
@@ -43,6 +49,7 @@ def get_resource_trace(scenario, region, technology, data):
         exit()
     return trace
 
+
 def print_preamble(name, path_to_inputs):
     print()
     print("-------------------------------------------------------------------------")
@@ -55,10 +62,19 @@ def check_input_dir_exists(path_to_inputs):
     if not os.path.exists(path_to_inputs):
         print("Inputs path does not exist. Exiting")
         return
-        def exit_if_infeasible(status):
-            if status == 'Infeasible':
-                print("\n", self.name, 'was infeasible. Exiting.')
+
 
 def exit_if_infeasible(status):
     if status == 'Infeasible':
         print("\n", self.name, 'was infeasible. Exiting.')
+
+
+def exit_if_infeasible(status, name):
+    if status == 'Infeasible':
+        print("\n", name, 'was infeasible. Exiting.')
+
+
+def load_default_file(filename):
+    file_path = os.path.join(default_files_path, filename)
+    data = pd.read_csv(file_path, index_col=0)
+    return data

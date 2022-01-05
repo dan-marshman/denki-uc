@@ -1,17 +1,10 @@
 import os
 import pandas as pd
 import logging
+import denkiuc.misc_functions as mf
 
 module_path = os.path.split(os.path.abspath(__file__))[0]
 default_files_path = os.path.join(module_path, 'default_files')
-
-
-def load_default_file(filename):
-    file_path = os.path.join(default_files_path, filename)
-
-    data = pd.read_csv(file_path, index_col=0)
-
-    return data
 
 
 def load_settings(path_to_inputs):
@@ -88,10 +81,13 @@ def load_unit_subsets(data, sets):
     units_storage = create_unit_subsets('Storage', data, sets['units'])
     units_variable = create_unit_subsets('Variable', data, sets['units'])
     units_renewable = create_unit_subsets('Renewable', data, sets['units'])
+    units_thermal = create_unit_subsets('Thermal', data, sets['units'])
 
     sets['units_commit'] = dkSet('units_commit', units_commit, sets['units'])
     sets['units_storage'] = dkSet('units_storage', units_storage, sets['units'])
     sets['units_variable'] = dkSet('units_variable', units_variable, sets['units'])
+    sets['units_renewable'] = dkSet('units_renewable', units_renewable, sets['units'])
+    sets['units_thermal'] = dkSet('units_thermal', units_thermal, sets['units'])
 
     units_inflex = create_unit_subsets('Inflexible', data, sets['units_commit'])
     units_flex = create_unit_subsets('Flexible', data, sets['units_commit'])
@@ -157,7 +153,7 @@ def create_unit_subsets(subset, data, units):
         if os.path.exists(path_to_db_tech_cat_file):
             tech_categories_df = pd.read_csv(path_to_db_tech_cat_file, index_col=0)
         else:
-            tech_categories_df = load_default_file(filename)
+            tech_categories_df = mf.load_default_file(filename)
 
         return tech_categories_df
 
@@ -195,19 +191,6 @@ class Data:
         self.load_initial_state()
         self.load_arma_values()
 
-    def load_traces(self):
-        self.orig_traces = dict()
-        trace_files = ['demand', 'wind', 'solarPV']
-
-        for file in trace_files:
-            file_path = os.path.join(self.path_to_inputs, file + '.csv')
-            if os.path.exists(file_path):
-                df = pd.read_csv(file_path, index_col=0)
-                self.orig_traces[file] = df
-            else:
-                print("Looking for trace file - doesn't exist", file_path)
-                exit()
-
     def load_unit_data(self):
         unit_data_path = os.path.join(self.path_to_inputs, 'unit_data.csv')
 
@@ -228,14 +211,6 @@ class Data:
         else:
             print("Looking for initial state file - doesn't exist", initial_state_path)
             self.missing_values['initial_state'] = True
-
-    def load_arma_values(self):
-        filename = 'arma_values.csv'
-        path_to_db_arma_file = os.path.join(self.path_to_inputs, filename)
-        if os.path.exists(path_to_db_arma_file):
-            self.arma_vals_df = pd.read_csv(path_to_db_arma_file, index_col=0)
-        else:
-            self.arma_vals_df = load_default_file(filename)
 
     def validate_initial_state_data(self, sets):
         for u in sets['units_commit'].indices:
@@ -278,61 +253,6 @@ class Data:
             if self.initial_state['StorageLevel_frac'][u] > 1:
                 print('Unit %s has initial storage fraction greater than 1' % u)
                 exit()
-
-    def add_arma_scenarios(self, scenarios, random_seed):
-        import numpy as np
-
-        def fill_arma_vals_for_scens_and_ints(scenarios, new_trace, orig_df):
-            for scenario in scenarios.indices[1:]:
-                new_trace.loc[:, (scenario, region)] = orig_df[region]
-
-                forecast_error = [0] * len(new_trace)
-
-                distribution = np.random.normal(0, arma_sigma, len(new_trace))
-
-                for j, i in enumerate(new_trace.index.to_list()[1:]):
-                    forecast_error[j+1] = \
-                        arma_alpha * forecast_error[j] \
-                        + distribution[j+1] + distribution[j] * arma_beta
-
-                    if trace_name == 'demand':
-                        new_trace.loc[i, (scenario, region)] = \
-                            (1 + forecast_error[j+1]) * new_trace.loc[i, (0, region)]
-                    elif trace_name in ['wind', 'solarPV']:
-                        new_trace.loc[i, (scenario, region)] = \
-                            forecast_error[j+1] + new_trace.loc[i, (0, region)]
-
-            return new_trace
-
-        def enforce_limits(new_trace, trace_name):
-            if trace_name in ['wind', 'solarPV']:
-                new_trace = new_trace.clip(lower=0, upper=1)
-            if trace_name in ['demand']:
-                new_trace = new_trace.clip(lower=0)
-            return new_trace
-
-        np.random.seed(random_seed)
-
-        self.traces = dict()
-
-        for trace_name, trace in self.orig_traces.items():
-            orig_df = self.orig_traces[trace_name]
-
-            df_cols = pd.MultiIndex.from_product([scenarios.indices, orig_df.columns])
-            df_cols = df_cols.set_names(['Scenario', 'Region'])
-            new_trace = pd.DataFrame(index=orig_df.index, columns=df_cols)
-
-            arma_alpha = self.arma_vals_df[trace_name]['alpha']
-            arma_beta = self.arma_vals_df[trace_name]['beta']
-            arma_sigma = self.arma_vals_df[trace_name]['sigma']
-
-            for region in orig_df.columns:
-                new_trace.loc[:, (0, region)] = orig_df[region]
-                new_trace = fill_arma_vals_for_scens_and_ints(scenarios, new_trace, orig_df)
-                new_trace = enforce_limits(new_trace, trace_name)
-            new_trace.round(5)
-
-            self.traces[trace_name] = new_trace
 
     def load_ancillary_service_requirements(self):
         reserve_requirement_path = os.path.join(self.path_to_inputs, 'reserve_requirement.csv')

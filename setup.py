@@ -12,7 +12,8 @@ setup(
     author_email='daniel.marshman@protonmail.com',
     url='https://github.com/dan-marshman/denki-uc',
     packages=find_packages(),
-    data_files=datafiles,
+    # data_files=datafiles,
     install_requires=['pulp', 'pandas', 'numpy'],
-    license='GNU General Public License v3.0'
+    license='GNU General Public License v3.0',
+    include_package_data=True
 )
