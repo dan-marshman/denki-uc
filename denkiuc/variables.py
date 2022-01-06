@@ -114,27 +114,28 @@ class dkVar():
         if self.type == 'Binary' or self.type == 'Integer':
             self.result_df = self.result_df.astype(int)
 
-    def remove_look_ahead_int_from_results(self, main_intervals):
+    def remove_LA_int_from_results(self, main_intervals):
         if 'intervals' not in [setx.name for setx in self.sets]:
             self.result_df_trimmed = self.result_df
             return
         else:
             self.result_df_trimmed = self.result_df.loc[main_intervals]
 
-    def write_to_file(self, write_dir, removed_la=False):
+    def write_to_csv(self, write_dir, removed_LA=False):
         import os
 
         filename = self.name + '_' + self.units + '.csv'
 
-        if not removed_la:
-            full_write_dir = os.path.join(write_dir, 'look_ahead_kept')
+        if not removed_LA:
+            full_write_dir = os.path.join(write_dir, 'LA_kept')
             if not os.path.exists(full_write_dir):
                 os.makedirs(full_write_dir)
-            write_path = os.path.join(write_dir, 'look_ahead_kept', filename)
+            write_path = os.path.join(write_dir, 'LA_kept', filename)
             self.result_df.to_csv(write_path)
-        if removed_la:
-            full_write_dir = os.path.join(write_dir, 'look_ahead_trimmed')
+
+        if removed_LA:
+            full_write_dir = os.path.join(write_dir, 'LA_trimmed')
             if not os.path.exists(full_write_dir):
                 os.makedirs(full_write_dir)
-            write_path = os.path.join(write_dir, 'look_ahead_trimmed', filename)
+            write_path = os.path.join(write_dir, 'LA_trimmed', filename)
             self.result_df_trimmed.to_csv(write_path)

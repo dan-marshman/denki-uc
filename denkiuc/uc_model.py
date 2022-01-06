@@ -1,3 +1,4 @@
+import denkiuc.denki_paths
 import denkiuc.load_data as ld
 import denkiuc.misc_functions as mf
 import denkiuc.variables as va
@@ -9,6 +10,7 @@ import sys
 class ucModel():
     def __init__(self, name, path_to_inputs):
         self.name = name
+        self.paths = denkiuc.denki_paths.dk_paths
         self.paths = {'inputs': path_to_inputs}
 
     def prepare_model(self):
@@ -16,13 +18,13 @@ class ucModel():
         self.load_settings()
         self.load_data()
         self.arrange_sets_and_data()
-        self.make_results_dict()
+        self.init_results_dict()
         self.add_variables()
         self.build_model()
-        exit()
 
     def load_settings(self):
-        self.settings = ld.load_settings(self.paths['inputs'])
+        self.paths['settings'] = os.path.join(self.paths['inputs'], 'settings.csv')
+        self.settings = ld.load_settings(self.paths)
         self.paths['outputs'] = os.path.join(self.settings['OUTPUTS_PATH'], self.name)
         mf.make_folder(self.paths['outputs'])
         mf.set_logger_path(self.paths['outputs'])
@@ -47,7 +49,7 @@ class ucModel():
 
         print("\n---- Parameters and sets are ready ----\n")
 
-    def make_results_dict(self):
+    def init_results_dict(self):
         self.results = dict()
 
     def add_variables(self):
@@ -80,7 +82,6 @@ class ucModel():
     def run_model(self):
         self.solve_model()
         self.store_results()
-        self.sanity_check_solution()
 
         print("\n---- Model solved ----\n")
 
@@ -116,45 +117,49 @@ class ucModel():
 
         self.optimality_status = pp.LpStatus[self.mod.status]
         print('Model status: %s' % self.optimality_status)
-        mf.exit_if_infeasible(self.optimality_status)
+        mf.exit_if_infeasible(self.optimality_status, self.name)
 
         self.opt_fn_value = self.mod.objective.value()
         print('Objective function = %f' % self.opt_fn_value)
 
     def store_results(self):
-        import denkiuc.add_custom_results as acs
+        import sqlite3
 
-        self.paths['results'] = os.path.join(self.paths['outputs'], 'results')
+        def setup_results_paths():
+            self.paths['results'] = os.path.join(self.paths['outputs'], 'results')
+            self.paths['LA_results_db'] = os.path.join(self.paths['results'], 'LA_results.db')
+            self.paths['TR_results_db'] = \
+                os.path.join(self.paths['results'], 'LA_trimmed_results.db')
+            os.makedirs(self.paths['results'])
 
-        os.makedirs(self.paths['results'])
+        def make_results_dfs():
+            for name, dkvar in self.vars.items():
+                dkvar.to_df()
+                dkvar.remove_LA_int_from_results(self.sets['main_intervals'].indices)
 
-        for name, dkvar in self.vars.items():
-            dkvar.to_df()
-            self.results[dkvar.name] = dkvar.result_df
+        def write_LA_results():
+            LA_connection = sqlite3.connect(self.paths['LA_results_db'])
+            for name, dkvar in self.vars.items():
+                dkvar.write_to_csv(self.paths['results'], removed_LA=False)
+                dkvar.result_df.to_sql(name, LA_connection)
+            LA_connection.close()
 
-            dkvar.remove_look_ahead_int_from_results(self.sets['main_intervals'].indices)
+        def write_TR_results():
+            TR_connection = sqlite3.connect(self.paths['TR_results_db'])
+            for name, dkvar in self.vars.items():
+                dkvar.write_to_csv(self.paths['results'], removed_LA=True)
+                dkvar.result_df_trimmed.to_sql(name, TR_connection)
+            TR_connection.close()
 
-            if self.settings['WRITE_RESULTS_WITH_LOOK_AHEAD']:
-                dkvar.write_to_file(self.paths['results'], removed_la=False)
+        setup_results_paths()
+        make_results_dfs()
 
-            if self.settings['WRITE_RESULTS_WITHOUT_LOOK_AHEAD']:
-                dkvar.write_to_file(self.paths['results'], removed_la=True)
+        if self.settings['WRITE_RESULTS_WITH_LOOK_AHEAD']:
+            write_LA_results()
 
-        self.results = acs.add_custom_results(self.data,
-                                              self.results,
-                                              self.paths['results'],
-                                              self.settings,
-                                              self.sets)
+        if self.settings['WRITE_RESULTS_WITHOUT_LOOK_AHEAD']:
+            write_TR_results()
 
-    def sanity_check_solution(self):
-        import denkiuc.sanity_check_solution as scs
-
-        scs.run_sanity_checks(self.sets, self.data, self.results, self.settings)
-
-
-path_to_denki = os.path.dirname(os.path.abspath(__file__))
-path_to_examples = os.path.join(os.path.dirname(path_to_denki), 'examples')
-path_to_tests = os.path.join(os.path.dirname(path_to_denki), 'test')
 
 if __name__ == '__main__':
     if len(sys.argv) <= 1:

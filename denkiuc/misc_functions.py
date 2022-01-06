@@ -64,11 +64,6 @@ def check_input_dir_exists(path_to_inputs):
         return
 
 
-def exit_if_infeasible(status):
-    if status == 'Infeasible':
-        print("\n", self.name, 'was infeasible. Exiting.')
-
-
 def exit_if_infeasible(status, name):
     if status == 'Infeasible':
         print("\n", name, 'was infeasible. Exiting.')

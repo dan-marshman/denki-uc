@@ -4,11 +4,6 @@ import denkiuc.misc_functions as mf
 import sys
 
 
-path_to_denki = os.path.dirname(os.path.abspath(__file__))
-path_to_examples = os.path.join(os.path.dirname(path_to_denki), 'examples')
-path_to_tests = os.path.join(os.path.dirname(path_to_denki), 'test')
-
-
 def main(paramters):
     trace_locations = load_trace_locations(paramters['INPUT_FOLDER'])
     deterministic_traces = load_deterministic_traces(trace_locations, paramters['INPUT_FOLDER'])

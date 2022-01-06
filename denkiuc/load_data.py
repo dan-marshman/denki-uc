@@ -7,13 +7,12 @@ module_path = os.path.split(os.path.abspath(__file__))[0]
 default_files_path = os.path.join(module_path, 'default_files')
 
 
-def load_settings(path_to_inputs):
+def load_settings(paths):
     import csv
 
     settings = dict()
-    settings_path = os.path.join(path_to_inputs, 'settings.csv')
 
-    with open(settings_path) as f:
+    with open(paths['settings']) as f:
         settings_data = csv.DictReader(f)
         for row in settings_data:
             if row['Type'] == 'int':
@@ -148,10 +147,10 @@ def make_multi_sets(sets):
 def create_unit_subsets(subset, data, units):
     def read_tech_categories_file():
         filename = 'technology_categories.csv'
-        path_to_db_tech_cat_file = os.path.join(data.path_to_inputs, filename)
+        data.paths['tech_cat_file'] = os.path.join(data.paths['inputs'], filename)
 
-        if os.path.exists(path_to_db_tech_cat_file):
-            tech_categories_df = pd.read_csv(path_to_db_tech_cat_file, index_col=0)
+        if os.path.exists(data.paths['tech_cat_file']):
+            tech_categories_df = pd.read_csv(data.paths['tech_cat_file'], index_col=0)
         else:
             tech_categories_df = mf.load_default_file(filename)
 
@@ -185,7 +184,7 @@ class Data:
         self.missing_values = dict()
         self.traces = dict()
 
-        self.path_to_inputs = path_to_inputs
+        self.paths = {'inputs': path_to_inputs}
         self.num_scenarios = settings['NUM_SCENARIOS']
         self.load_stochastic_traces(settings)
         self.load_ancillary_service_requirements()
@@ -196,20 +195,30 @@ class Data:
         import denkiuc.arma_generator as ag
         import sqlite3
 
-        arma_out_dir = os.path.join(self.path_to_inputs, 'arma_traces')
+        arma_out_dir = os.path.join(self.paths['inputs'], 'arma_traces')
 
-        suitable_arma_db_found = False
+        def check_if_new_arma_db_needed():
+            arma_dbs = os.listdir(arma_out_dir)
 
-        for db_file in os.listdir(arma_out_dir):
-            if int(db_file[0:3]) >= settings['NUM_SCENARIOS']:
-                break
+            if len(arma_dbs) == 0:
+                ag.run_arma_model(self.paths['inputs'],
+                                  settings['NUM_SCENARIOS'],
+                                  settings['RANDOM_SEED'])
+                return
 
-        if suitable_arma_db_found is False:
-            db_file = '%03d_arma_traces.db' % settings['NUM_SCENARIOS']
-            ag.run_arma_model(self.path_to_inputs,
-                              settings['NUM_SCENARIOS'],
-                              settings['RANDOM_SEED'])
+            max_scenario_db = max([int(f[0:3]) for f in arma_dbs])
+            if settings['NUM_SCENARIOS'] > max_scenario_db:
+                ag.run_arma_model(self.paths['inputs'],
+                                  settings['NUM_SCENARIOS'],
+                                  settings['RANDOM_SEED'])
 
+        def find_arma_db():
+            for db_file in os.listdir(arma_out_dir):
+                if int(db_file[0:3]) >= settings['NUM_SCENARIOS']:
+                    return db_file
+
+        check_if_new_arma_db_needed()
+        db_file = find_arma_db()
         arma_db_path = os.path.join(arma_out_dir, db_file)
 
         db_connection = sqlite3.connect(arma_db_path)
@@ -220,17 +229,17 @@ class Data:
         db_connection.close()
 
     def load_unit_data(self):
-        unit_data_path = os.path.join(self.path_to_inputs, 'unit_data.csv')
+        self.paths['unit_data'] = os.path.join(self.paths['inputs'], 'unit_data.csv')
 
-        if os.path.exists(unit_data_path):
-            self.units = pd.read_csv(unit_data_path, index_col=0)
+        if os.path.exists(self.paths['unit_data']):
+            self.units = pd.read_csv(self.paths['unit_data'], index_col=0)
 
         else:
-            print("Looking for unit data file - doesn't exist", unit_data_path)
+            print("Looking for unit data file - doesn't exist", self.paths['unit_data'])
             exit()
 
     def load_initial_state(self):
-        initial_state_path = os.path.join(self.path_to_inputs, 'initial_state.csv')
+        initial_state_path = os.path.join(self.paths['inputs'], 'initial_state.csv')
 
         if os.path.exists(initial_state_path):
             self.initial_state = pd.read_csv(initial_state_path, index_col=0)
@@ -283,7 +292,7 @@ class Data:
                 exit()
 
     def load_ancillary_service_requirements(self):
-        reserve_requirement_path = os.path.join(self.path_to_inputs, 'reserve_requirement.csv')
+        reserve_requirement_path = os.path.join(self.paths['inputs'], 'reserve_requirement.csv')
 
         if os.path.exists(reserve_requirement_path):
             self.reserve_requirement = pd.read_csv(reserve_requirement_path, index_col=0)

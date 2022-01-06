@@ -108,6 +108,8 @@ def add_dispatch_result(data, results, new_results):
 
     dispatch = add_level_and_join(dispatch, -1 * results['charge_after_losses'], 'charge')
     dispatch = add_level_and_join(dispatch, -1 * new_results['charge_losses'], 'losses')
+    print(dispatch)
+    exit()
     dispatch = add_level_and_join(dispatch, -1 * data.traces['demand'], 'demand')
 
     unserved_df = results['unserved_power'].copy()
