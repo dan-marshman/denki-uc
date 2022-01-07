@@ -196,6 +196,7 @@ class Data:
         import sqlite3
 
         arma_out_dir = os.path.join(self.paths['inputs'], 'arma_traces')
+        mf.make_folder(arma_out_dir)
 
         def check_if_new_arma_db_needed():
             arma_dbs = os.listdir(arma_out_dir)
