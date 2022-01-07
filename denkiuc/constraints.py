@@ -1,7 +1,12 @@
 import pulp as pp
 
 
-def cnt_supply_eq_demand(sets, data, vars, mod):
+def cnt_supply_eq_demand(attr):
+    sets = attr['sets']
+    data = attr['data']
+    vars = attr['vars']
+    mod = attr['mod']
+
     for i in sets['intervals'].indices:
         for s in sets['scenarios'].indices:
             label = 'meet_demand_i_%d_s_%d' % (i, s)
@@ -22,7 +27,12 @@ def cnt_supply_eq_demand(sets, data, vars, mod):
     return mod
 
 
-def cnt_meet_reserve_requirement(sets, data, vars, mod):
+def cnt_meet_reserve_requirement(attr):
+    sets = attr['sets']
+    data = attr['data']
+    vars = attr['vars']
+    mod = attr['mod']
+
     for r in sets['reserves'].indices:
         for i in sets['intervals'].indices:
             for s in sets['scenarios'].indices:
@@ -41,7 +51,12 @@ def cnt_meet_reserve_requirement(sets, data, vars, mod):
     return mod
 
 
-def cnt_intermittent_resource_availability(sets, data, vars, mod):
+def cnt_variable_resource_availability(attr):
+    sets = attr['sets']
+    data = attr['data']
+    vars = attr['vars']
+    mod = attr['mod']
+
     import denkiuc.misc_functions as mf
 
     for u in sets['units_variable'].indices:
@@ -64,7 +79,12 @@ def cnt_intermittent_resource_availability(sets, data, vars, mod):
     return mod
 
 
-def cnt_commitment_continuity(sets, data, vars, mod):
+def cnt_commitment_continuity(attr):
+    sets = attr['sets']
+    data = attr['data']
+    vars = attr['vars']
+    mod = attr['mod']
+
     for i in sets['intervals'].indices:
         for u in sets['units_commit'].indices:
 
@@ -100,7 +120,11 @@ def cnt_commitment_continuity(sets, data, vars, mod):
     return mod
 
 
-def cnt_inflexible_commitment(sets, data, vars, mod):
+def cnt_inflexible_commitment(attr):
+    sets = attr['sets']
+    vars = attr['vars']
+    mod = attr['mod']
+
     for i in sets['intervals'].indices:
         for s in sets['scenarios'].indices:
             for u in sets['units_inflex'].indices:
@@ -117,7 +141,12 @@ def cnt_inflexible_commitment(sets, data, vars, mod):
     return mod
 
 
-def cnt_max_units_committed(sets, data, vars, mod):
+def cnt_max_units_committed(attr):
+    sets = attr['sets']
+    data = attr['data']
+    vars = attr['vars']
+    mod = attr['mod']
+
     for i in sets['intervals'].indices:
         for s in sets['scenarios'].indices:
             for u in sets['units_commit'].indices:
@@ -133,7 +162,12 @@ def cnt_max_units_committed(sets, data, vars, mod):
     return mod
 
 
-def cnt_power_lt_committed_capacity(sets, data, vars, mod):
+def cnt_power_lt_committed_capacity(attr):
+    sets = attr['sets']
+    data = attr['data']
+    vars = attr['vars']
+    mod = attr['mod']
+
     for i in sets['intervals'].indices:
         for s in sets['scenarios'].indices:
             for u in sets['units_commit'].indices:
@@ -151,7 +185,12 @@ def cnt_power_lt_committed_capacity(sets, data, vars, mod):
     return mod
 
 
-def cnt_power_gt_min_stable_gen(sets, data, vars, mod):
+def cnt_power_gt_min_stable_gen(attr):
+    sets = attr['sets']
+    data = attr['data']
+    vars = attr['vars']
+    mod = attr['mod']
+
     for i in sets['intervals'].indices:
         for s in sets['scenarios'].indices:
             for u in sets['units_commit'].indices:
@@ -170,7 +209,12 @@ def cnt_power_gt_min_stable_gen(sets, data, vars, mod):
     return mod
 
 
-def cnt_power_lt_capacity(sets, data, vars, mod):
+def cnt_power_lt_capacity(attr):
+    sets = attr['sets']
+    data = attr['data']
+    vars = attr['vars']
+    mod = attr['mod']
+
     for i in sets['intervals'].indices:
         for s in sets['scenarios'].indices:
             for u in sets['units'].indices:
@@ -188,7 +232,13 @@ def cnt_power_lt_capacity(sets, data, vars, mod):
     return mod
 
 
-def cnt_minimum_up_time(sets, data, vars, mod, settings):
+def cnt_minimum_up_time(attr):
+    sets = attr['sets']
+    data = attr['data']
+    vars = attr['vars']
+    mod = attr['mod']
+    settings = attr['settings']
+
     i0 = min(sets['intervals'].indices)
 
     for i in sets['intervals'].indices:
@@ -213,7 +263,13 @@ def cnt_minimum_up_time(sets, data, vars, mod, settings):
     return mod
 
 
-def cnt_minimum_down_time(sets, data, vars, mod, settings):
+def cnt_minimum_down_time(attr):
+    sets = attr['sets']
+    data = attr['data']
+    vars = attr['vars']
+    mod = attr['mod']
+    settings = attr['settings']
+
     i0 = min(sets['intervals'].indices)
 
     for i in sets['intervals'].indices:
@@ -239,7 +295,12 @@ def cnt_minimum_down_time(sets, data, vars, mod, settings):
     return mod
 
 
-def cnt_energy_storage_continuity(sets, data, vars, mod, settings):
+def cnt_storage_continuity(attr):
+    sets = attr['sets']
+    vars = attr['vars']
+    mod = attr['mod']
+    settings = attr['settings']
+
     for i in sets['intervals'].indices:
         if i > min(sets['intervals'].indices):
             for s in sets['scenarios'].indices:
@@ -259,7 +320,13 @@ def cnt_energy_storage_continuity(sets, data, vars, mod, settings):
     return mod
 
 
-def cnt_energy_storage_continuity_first_interval(sets, data, vars, mod, settings):
+def cnt_storage_continuity_first_int(attr):
+    sets = attr['sets']
+    data = attr['data']
+    vars = attr['vars']
+    mod = attr['mod']
+    settings = attr['settings']
+
     for s in sets['scenarios'].indices:
         for u in sets['units_storage'].indices:
             i = min(sets['intervals'].indices)
@@ -279,7 +346,12 @@ def cnt_energy_storage_continuity_first_interval(sets, data, vars, mod, settings
     return mod
 
 
-def cnt_max_stored_energy(sets, data, vars, mod):
+def cnt_max_stored_energy(attr):
+    sets = attr['sets']
+    data = attr['data']
+    vars = attr['vars']
+    mod = attr['mod']
+
     for i in sets['intervals'].indices:
         for s in sets['scenarios'].indices:
             for u in sets['units_storage'].indices:
@@ -296,7 +368,12 @@ def cnt_max_stored_energy(sets, data, vars, mod):
     return mod
 
 
-def cnt_max_charge(sets, data, vars, mod):
+def cnt_max_charge(attr):
+    sets = attr['sets']
+    data = attr['data']
+    vars = attr['vars']
+    mod = attr['mod']
+
     for i in sets['intervals'].indices:
         for s in sets['scenarios'].indices:
             for u in sets['units_storage'].indices:
@@ -311,7 +388,12 @@ def cnt_max_charge(sets, data, vars, mod):
     return mod
 
 
-def cnt_maximum_reserve_enablement(sets, data, vars, mod):
+def cnt_maximum_reserve_enablement(attr):
+    sets = attr['sets']
+    data = attr['data']
+    vars = attr['vars']
+    mod = attr['mod']
+
     import denkiuc.misc_functions as mf
 
     for u in sets['units'].indices:
@@ -347,7 +429,13 @@ def cnt_maximum_reserve_enablement(sets, data, vars, mod):
     return mod
 
 
-def cnt_limit_rocof(sets, data, vars, mod, settings):
+def cnt_limit_rocof(attr):
+    sets = attr['sets']
+    data = attr['data']
+    vars = attr['vars']
+    mod = attr['mod']
+    settings = attr['settings']
+
     import denkiuc.misc_functions as mf
 
     def define_rocof_condition(settings, contingency_size, available_inertia):
@@ -400,7 +488,12 @@ def cnt_limit_rocof(sets, data, vars, mod, settings):
     return mod
 
 
-def cnt_define_is_committed(sets, data, vars, mod):
+def cnt_define_is_committed(attr):
+    sets = attr['sets']
+    data = attr['data']
+    vars = attr['vars']
+    mod = attr['mod']
+
     for i in sets['intervals'].indices:
         for s in sets['scenarios'].indices:
             for u in sets['units_commit'].indices:
@@ -418,7 +511,13 @@ def cnt_define_is_committed(sets, data, vars, mod):
     return mod
 
 
-def cnt_ramp_rate_up(sets, data, vars, mod, settings):
+def cnt_ramp_rate_up(attr):
+    sets = attr['sets']
+    data = attr['data']
+    vars = attr['vars']
+    mod = attr['mod']
+    settings = attr['settings']
+
     for i in sets['intervals'].indices:
         for s in sets['scenarios'].indices:
             for u in sets['units_commit'].indices:
@@ -452,7 +551,13 @@ def cnt_ramp_rate_up(sets, data, vars, mod, settings):
     return mod
 
 
-def cnt_ramp_rate_down(sets, data, vars, mod, settings):
+def cnt_ramp_rate_down(attr):
+    sets = attr['sets']
+    data = attr['data']
+    vars = attr['vars']
+    mod = attr['mod']
+    settings = attr['settings']
+
     for i in sets['intervals'].indices:
         for s in sets['scenarios'].indices:
             for u in sets['units_commit'].indices:
@@ -486,113 +591,85 @@ def cnt_ramp_rate_down(sets, data, vars, mod, settings):
     return mod
 
 
-def create_constraints_df(path_to_inputs):
+def create_cnts_df(path_to_inputs):
     import os
     import pandas as pd
 
-    constraints_df = pd.read_csv(os.path.join(path_to_inputs, 'constraints.csv'), index_col=0)
+    cnts_df = pd.read_csv(os.path.join(path_to_inputs, 'constraints.csv'), index_col=0)
+    cnts_df['Cnst'] = ''
 
-    return constraints_df
-
-
-def add_basic_constraints(sets, data, vars, mod):
-    mod = cnt_supply_eq_demand(sets, data, vars, mod)
-    mod = cnt_meet_reserve_requirement(sets, data, vars, mod)
-    mod = cnt_power_lt_capacity(sets, data, vars, mod)
-    mod = cnt_intermittent_resource_availability(sets, data, vars, mod)
-    mod = cnt_maximum_reserve_enablement(sets, data, vars, mod)
-
-    return mod
+    return cnts_df
 
 
-def add_uc_constraints(sets, data, vars, mod, settings):
-    mod = cnt_commitment_continuity(sets, data, vars, mod)
-    mod = cnt_max_units_committed(sets, data, vars, mod)
-    mod = cnt_power_lt_committed_capacity(sets, data, vars, mod)
-    mod = cnt_power_gt_min_stable_gen(sets, data, vars, mod)
-    mod = cnt_minimum_up_time(sets, data, vars, mod, settings)
-    mod = cnt_minimum_down_time(sets, data, vars, mod, settings)
-    mod = cnt_limit_rocof(sets, data, vars, mod, settings)
-    mod = cnt_define_is_committed(sets, data, vars, mod)
-    mod = cnt_ramp_rate_up(sets, data, vars, mod, settings)
-    mod = cnt_ramp_rate_down(sets, data, vars, mod, settings)
+def add_basic_constraints(attr):
+    attr['mod'] = cnt_supply_eq_demand(attr)
+    attr['mod'] = cnt_meet_reserve_requirement(attr)
+    attr['mod'] = cnt_power_lt_capacity(attr)
+    attr['mod'] = cnt_variable_resource_availability(attr)
+    attr['mod'] = cnt_maximum_reserve_enablement(attr)
 
-    return mod
+    return attr
 
 
-def add_storage_constraints(sets, data, vars, mod, settings):
-    mod = cnt_energy_storage_continuity(sets, data, vars, mod, settings)
-    mod = cnt_energy_storage_continuity_first_interval(sets, data, vars, mod, settings)
-    mod = cnt_max_stored_energy(sets, data, vars, mod)
-    mod = cnt_max_charge(sets, data, vars, mod)
+def add_uc_constraints(attr):
+    attr['mod'] = cnt_commitment_continuity(attr)
+    attr['mod'] = cnt_max_units_committed(attr)
+    attr['mod'] = cnt_power_lt_committed_capacity(attr)
+    attr['mod'] = cnt_power_gt_min_stable_gen(attr)
+    attr['mod'] = cnt_minimum_up_time(attr)
+    attr['mod'] = cnt_minimum_down_time(attr)
+    attr['mod'] = cnt_limit_rocof(attr)
+    attr['mod'] = cnt_define_is_committed(attr)
+    attr['mod'] = cnt_ramp_rate_up(attr)
+    attr['mod'] = cnt_ramp_rate_down(attr)
 
-    return mod
-
-
-def add_constraints_to_model(sets, data, vars, settings, mod, constraints_df):
-    mod = add_basic_constraints(sets, data, vars, mod)
-    mod = add_storage_constraints(sets, data, vars, mod, settings)
-
-    if settings['INCL_UNIT_COMMITMENT']:
-        mod = add_uc_constraints(sets, data, vars, mod, settings)
+    return attr
 
 
-def add_all_constraints_to_dataframe(sets, data, vars, settings, mod, constraints_df):
-    if constraints_df['Include']['supply_eq_demand'] == 1:
-        mod = cnt_supply_eq_demand(sets, data, vars, mod)
+def add_storage_constraints(attr):
+    attr['mod'] = cnt_storage_continuity(attr)
+    attr['mod'] = cnt_storage_continuity_first_int(attr)
+    attr['mod'] = cnt_max_stored_energy(attr)
+    attr['mod'] = cnt_max_charge(attr)
 
-    if constraints_df['Include']['meet_reserve_requirement'] == 1:
-        mod = cnt_meet_reserve_requirement(sets, data, vars, mod)
+    return attr
 
-    if constraints_df['Include']['power_lt_capacity'] == 1:
-        mod = cnt_power_lt_capacity(sets, data, vars, mod)
 
-    if constraints_df['Include']['intermittent_resource_availability'] == 1:
-        mod = cnt_intermittent_resource_availability(sets, data, vars, mod)
+def add_constraints_to_model(attr):
+    attr = add_basic_constraints(attr)
+    attr = add_storage_constraints(attr)
 
-    if constraints_df['Include']['commitment_continuity'] == 1:
-        mod = cnt_commitment_continuity(sets, data, vars, mod)
+    if attr['settings']['INCL_UNIT_COMMITMENT']:
+        attr = add_uc_constraints(attr)
 
-    if constraints_df['Include']['max_units_committed'] == 1:
-        mod = cnt_max_units_committed(sets, data, vars, mod)
+    return attr
 
-    if constraints_df['Include']['power_lt_committed_capacity'] == 1:
-        mod = cnt_power_lt_committed_capacity(sets, data, vars, mod)
 
-    if constraints_df['Include']['power_gt_min_stable_gen'] == 1:
-        mod = cnt_power_gt_min_stable_gen(sets, data, vars, mod)
+def add_all_constraints_to_dataframe(sets, data, vars, settings, mod, cnts_df):
+    attr = {'sets': sets, 'data': data, 'vars': vars, 'mod': mod, 'settings': settings}
 
-    if constraints_df['Include']['minimum_up_time'] == 1:
-        mod = cnt_minimum_up_time(sets, data, vars, mod, settings)
+    cnts_df.loc['supply_eq_demand', 'Cnst'] = cnt_supply_eq_demand
+    cnts_df.loc['meet_reserve_requirement', 'Cnst'] = cnt_meet_reserve_requirement
+    cnts_df.loc['power_lt_capacity', 'Cnst'] = cnt_power_lt_capacity
+    cnts_df.loc['variable_resource_availability', 'Cnst'] = cnt_variable_resource_availability
+    cnts_df.loc['commitment_continuity', 'Cnst'] = cnt_commitment_continuity
+    cnts_df.loc['max_units_committed', 'Cnst'] = cnt_max_units_committed
+    cnts_df.loc['power_lt_committed_capacity', 'Cnst'] = cnt_power_lt_committed_capacity
+    cnts_df.loc['power_gt_min_stable_gen', 'Cnst'] = cnt_power_gt_min_stable_gen
+    cnts_df.loc['minimum_up_time', 'Cnst'] = cnt_minimum_up_time
+    cnts_df.loc['minimum_down_time', 'Cnst'] = cnt_minimum_down_time
+    cnts_df.loc['ramp_rate_up', 'Cnst'] = cnt_ramp_rate_up
+    cnts_df.loc['ramp_rate_down', 'Cnst'] = cnt_ramp_rate_down
+    cnts_df.loc['storage_continuity', 'Cnst'] = cnt_storage_continuity
+    cnts_df.loc['storage_continuity_first_int', 'Cnst'] = cnt_storage_continuity_first_int
+    cnts_df.loc['max_stored_energy', 'Cnst'] = cnt_max_stored_energy
+    cnts_df.loc['max_charge', 'Cnst'] = cnt_max_charge
+    cnts_df.loc['maximum_reserve_enablement', 'Cnst'] = cnt_maximum_reserve_enablement
+    cnts_df.loc['limit_rocof', 'Cnst'] = cnt_limit_rocof
+    cnts_df.loc['define_is_committed', 'Cnst'] = cnt_define_is_committed
 
-    if constraints_df['Include']['minimum_down_time'] == 1:
-        mod = cnt_minimum_down_time(sets, data, vars, mod, settings)
-
-    if constraints_df['Include']['ramp_rate_up'] == 1:
-        mod = cnt_ramp_rate_up(sets, data, vars, mod, settings)
-
-    if constraints_df['Include']['ramp_rate_down'] == 1:
-        mod = cnt_ramp_rate_down(sets, data, vars, mod, settings)
-
-    if constraints_df['Include']['energy_storage_continuity'] == 1:
-        mod = cnt_energy_storage_continuity(sets, data, vars, mod, settings)
-
-    if constraints_df['Include']['energy_storage_continuity_first_interval'] == 1:
-        mod = cnt_energy_storage_continuity_first_interval(sets, data, vars, mod, settings)
-
-    if constraints_df['Include']['max_stored_energy'] == 1:
-        mod = cnt_max_stored_energy(sets, data, vars, mod)
-
-    if constraints_df['Include']['max_charge'] == 1:
-        mod = cnt_max_charge(sets, data, vars, mod)
-
-    if constraints_df['Include']['maximum_reserve_enablement'] == 1:
-        mod = cnt_maximum_reserve_enablement(sets, data, vars, mod)
-
-    if constraints_df['Include']['limit_rocof'] == 1:
-        mod = cnt_limit_rocof(sets, data, vars, mod, settings)
-
-    if constraints_df['Include']['define_is_committed'] == 1:
-        mod = cnt_define_is_committed(sets, data, vars, mod)
+    cnts_to_add_df = cnts_df[cnts_df['Include'] == 1]
+    for cnt in cnts_to_add_df.index:
+        attr['mod'] = cnts_df['Cnst'][cnt](attr)
 
     return mod

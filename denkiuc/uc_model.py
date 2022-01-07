@@ -86,19 +86,19 @@ class ucModel():
         print("\n---- Model solved ----\n")
 
     def build_model(self):
-        import denkiuc.constraints as cnsts
+        import denkiuc.constraints as cnts
         import denkiuc.obj_fn as obj
 
         self.mod = pp.LpProblem(self.name, sense=pp.LpMinimize)
         self.mod += obj.obj_fn(self.sets, self.data, self.vars, self.settings)
 
-        self.constraints_df = cnsts.create_constraints_df(self.paths['inputs'])
-        self.mod = cnsts.add_all_constraints_to_dataframe(self.sets,
+        self.cnts_df = cnts.create_cnts_df(self.paths['inputs'])
+        self.mod = cnts.add_all_constraints_to_dataframe(self.sets,
                                                           self.data,
                                                           self.vars,
                                                           self.settings,
                                                           self.mod,
-                                                          self.constraints_df)
+                                                          self.cnts_df)
 
     def solve_model(self):
         import time
