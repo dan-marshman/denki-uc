@@ -275,7 +275,7 @@ class Data:
 
             minimum_initial_power_MW = \
                 self.initial_state['NumCommited'][u] \
-                * self.units['MinGen'][u] * self.units['Capacity_MW'][u]
+                * self.units['MinGen_pctCap'][u] * self.units['Capacity_MW'][u]
 
             maximum_initial_power_MW = \
                 self.initial_state['NumCommited'][u] * self.units['Capacity_MW'][u]

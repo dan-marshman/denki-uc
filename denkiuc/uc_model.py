@@ -58,7 +58,7 @@ class ucModel():
 
         vars['power_generated'] = va.dkVar('power_generated', 'MW', m_sets['in_sc_un'])
 
-        vars['num_commited'] = va.dkVar('num_commited', 'NumUnits', m_sets['in_sc_unco'], 'I')
+        vars['num_committed'] = va.dkVar('num_committed', 'NumUnits', m_sets['in_sc_unco'], 'I')
         vars['inertia_provided'] = va.dkVar('inertia_provided', 'MW.s', m_sets['in_sc_unco'])
         vars['is_committed'] = va.dkVar('is_committed', 'Binary', m_sets['in_sc_unco'], 'B')
         vars['num_shutting_down'] = \
