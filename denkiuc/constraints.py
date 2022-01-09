@@ -2,8 +2,8 @@ import pulp as pp
 import denkiuc.misc_functions as mf
 
 
-def cnt_supply_eq_demand(attr):
-    sets, data, vars, mod = mf.unpack_attr(attr)
+def cnt_supply_eq_demand(prob):
+    sets, data, vars, mod = mf.prob_unpacker(prob, ['sets', 'data', 'vars', 'mod'])
 
     for i in sets['intervals'].indices:
         for s in sets['scenarios'].indices:
@@ -25,8 +25,8 @@ def cnt_supply_eq_demand(attr):
     return mod
 
 
-def cnt_meet_reserve_requirement(attr):
-    sets, data, vars, mod = mf.unpack_attr(attr)
+def cnt_meet_reserve_requirement(prob):
+    sets, data, vars, mod = mf.prob_unpacker(prob, ['sets', 'data', 'vars', 'mod'])
 
     for r in sets['reserves'].indices:
         for i in sets['intervals'].indices:
@@ -46,8 +46,8 @@ def cnt_meet_reserve_requirement(attr):
     return mod
 
 
-def cnt_variable_resource_availability(attr):
-    sets, data, vars, mod = mf.unpack_attr(attr)
+def cnt_variable_resource_availability(prob):
+    sets, data, vars, mod = mf.prob_unpacker(prob, ['sets', 'data', 'vars', 'mod'])
 
     for u in sets['units_variable'].indices:
         region = data.units['Region'][u]
@@ -69,8 +69,8 @@ def cnt_variable_resource_availability(attr):
     return mod
 
 
-def cnt_commitment_continuity(attr):
-    sets, data, vars, mod = mf.unpack_attr(attr)
+def cnt_commitment_continuity(prob):
+    sets, data, vars, mod = mf.prob_unpacker(prob, ['sets', 'data', 'vars', 'mod'])
 
     for i in sets['intervals'].indices:
         for u in sets['units_commit'].indices:
@@ -107,8 +107,8 @@ def cnt_commitment_continuity(attr):
     return mod
 
 
-def cnt_inflexible_commitment(attr):
-    sets, data, vars, mod = mf.unpack_attr(attr)
+def cnt_inflexible_commitment(prob):
+    sets, data, vars, mod = mf.prob_unpacker(prob, ['sets', 'data', 'vars', 'mod'])
 
     for i in sets['intervals'].indices:
         for s in sets['scenarios'].indices:
@@ -126,8 +126,8 @@ def cnt_inflexible_commitment(attr):
     return mod
 
 
-def cnt_max_units_committed(attr):
-    sets, data, vars, mod = mf.unpack_attr(attr)
+def cnt_max_units_committed(prob):
+    sets, data, vars, mod = mf.prob_unpacker(prob, ['sets', 'data', 'vars', 'mod'])
 
     for i in sets['intervals'].indices:
         for s in sets['scenarios'].indices:
@@ -144,8 +144,8 @@ def cnt_max_units_committed(attr):
     return mod
 
 
-def cnt_power_lt_committed_capacity(attr):
-    sets, data, vars, mod = mf.unpack_attr(attr)
+def cnt_power_lt_committed_capacity(prob):
+    sets, data, vars, mod = mf.prob_unpacker(prob, ['sets', 'data', 'vars', 'mod'])
 
     for i in sets['intervals'].indices:
         for s in sets['scenarios'].indices:
@@ -164,8 +164,8 @@ def cnt_power_lt_committed_capacity(attr):
     return mod
 
 
-def cnt_power_gt_min_stable_gen(attr):
-    sets, data, vars, mod = mf.unpack_attr(attr)
+def cnt_power_gt_min_stable_gen(prob):
+    sets, data, vars, mod = mf.prob_unpacker(prob, ['sets', 'data', 'vars', 'mod'])
 
     for i in sets['intervals'].indices:
         for s in sets['scenarios'].indices:
@@ -185,8 +185,8 @@ def cnt_power_gt_min_stable_gen(attr):
     return mod
 
 
-def cnt_power_lt_capacity(attr):
-    sets, data, vars, mod = mf.unpack_attr(attr)
+def cnt_power_lt_capacity(prob):
+    sets, data, vars, mod = mf.prob_unpacker(prob, ['sets', 'data', 'vars', 'mod'])
 
     for i in sets['intervals'].indices:
         for s in sets['scenarios'].indices:
@@ -205,9 +205,9 @@ def cnt_power_lt_capacity(attr):
     return mod
 
 
-def cnt_minimum_up_time(attr):
-    sets, data, vars, mod = mf.unpack_attr(attr)
-    settings = attr['settings']
+def cnt_minimum_up_time(prob):
+    sets, data, vars, mod, settings = \
+        mf.prob_unpacker(prob, ['sets', 'data', 'vars', 'mod', 'settings'])
 
     i0 = min(sets['intervals'].indices)
 
@@ -233,9 +233,9 @@ def cnt_minimum_up_time(attr):
     return mod
 
 
-def cnt_minimum_down_time(attr):
-    sets, data, vars, mod = mf.unpack_attr(attr)
-    settings = attr['settings']
+def cnt_minimum_down_time(prob):
+    sets, data, vars, mod, settings = \
+        mf.prob_unpacker(prob, ['sets', 'data', 'vars', 'mod', 'settings'])
 
     i0 = min(sets['intervals'].indices)
 
@@ -262,9 +262,9 @@ def cnt_minimum_down_time(attr):
     return mod
 
 
-def cnt_storage_continuity(attr):
-    sets, data, vars, mod = mf.unpack_attr(attr)
-    settings = attr['settings']
+def cnt_storage_continuity(prob):
+    sets, data, vars, mod, settings = \
+        mf.prob_unpacker(prob, ['sets', 'data', 'vars', 'mod', 'settings'])
 
     for i in sets['intervals'].indices:
         if i > min(sets['intervals'].indices):
@@ -285,9 +285,9 @@ def cnt_storage_continuity(attr):
     return mod
 
 
-def cnt_storage_continuity_first_int(attr):
-    sets, data, vars, mod = mf.unpack_attr(attr)
-    settings = attr['settings']
+def cnt_storage_continuity_first_int(prob):
+    sets, data, vars, mod, settings = \
+        mf.prob_unpacker(prob, ['sets', 'data', 'vars', 'mod', 'settings'])
 
     for s in sets['scenarios'].indices:
         for u in sets['units_storage'].indices:
@@ -308,8 +308,8 @@ def cnt_storage_continuity_first_int(attr):
     return mod
 
 
-def cnt_max_stored_energy(attr):
-    sets, data, vars, mod = mf.unpack_attr(attr)
+def cnt_max_stored_energy(prob):
+    sets, data, vars, mod = mf.prob_unpacker(prob, ['sets', 'data', 'vars', 'mod'])
 
     for i in sets['intervals'].indices:
         for s in sets['scenarios'].indices:
@@ -327,8 +327,8 @@ def cnt_max_stored_energy(attr):
     return mod
 
 
-def cnt_max_charge(attr):
-    sets, data, vars, mod = mf.unpack_attr(attr)
+def cnt_max_charge(prob):
+    sets, data, vars, mod = mf.prob_unpacker(prob, ['sets', 'data', 'vars', 'mod'])
 
     for i in sets['intervals'].indices:
         for s in sets['scenarios'].indices:
@@ -344,8 +344,8 @@ def cnt_max_charge(attr):
     return mod
 
 
-def cnt_maximum_reserve_enablement(attr):
-    sets, data, vars, mod = mf.unpack_attr(attr)
+def cnt_maximum_reserve_enablement(prob):
+    sets, data, vars, mod = mf.prob_unpacker(prob, ['sets', 'data', 'vars', 'mod'])
 
     for u in sets['units'].indices:
         if u in sets['units_commit'].indices:
@@ -380,9 +380,9 @@ def cnt_maximum_reserve_enablement(attr):
     return mod
 
 
-def cnt_limit_rocof(attr):
-    sets, data, vars, mod = mf.unpack_attr(attr)
-    settings = attr['settings']
+def cnt_limit_rocof(prob):
+    sets, data, vars, mod, settings = \
+        mf.prob_unpacker(prob, ['sets', 'data', 'vars', 'mod', 'settings'])
 
     def define_rocof_condition(settings, contingency_size, available_inertia):
         condition = \
@@ -434,8 +434,8 @@ def cnt_limit_rocof(attr):
     return mod
 
 
-def cnt_define_is_committed(attr):
-    sets, data, vars, mod = mf.unpack_attr(attr)
+def cnt_define_is_committed(prob):
+    sets, data, vars, mod = mf.prob_unpacker(prob, ['sets', 'data', 'vars', 'mod'])
 
     for i in sets['intervals'].indices:
         for s in sets['scenarios'].indices:
@@ -454,9 +454,9 @@ def cnt_define_is_committed(attr):
     return mod
 
 
-def cnt_ramp_rate_up(attr):
-    sets, data, vars, mod = mf.unpack_attr(attr)
-    settings = attr['settings']
+def cnt_ramp_rate_up(prob):
+    sets, data, vars, mod, settings = \
+        mf.prob_unpacker(prob, ['sets', 'data', 'vars', 'mod', 'settings'])
 
     for i in sets['intervals'].indices:
         for s in sets['scenarios'].indices:
@@ -491,9 +491,9 @@ def cnt_ramp_rate_up(attr):
     return mod
 
 
-def cnt_ramp_rate_down(attr):
-    sets, data, vars, mod = mf.unpack_attr(attr)
-    settings = attr['settings']
+def cnt_ramp_rate_down(prob):
+    sets, data, vars, mod, settings = \
+        mf.prob_unpacker(prob, ['sets', 'data', 'vars', 'mod', 'settings'])
 
     for i in sets['intervals'].indices:
         for s in sets['scenarios'].indices:
@@ -538,52 +538,52 @@ def create_cnts_df(path_to_inputs):
     return cnts_df
 
 
-def add_basic_constraints(attr):
-    attr['mod'] = cnt_supply_eq_demand(attr)
-    attr['mod'] = cnt_meet_reserve_requirement(attr)
-    attr['mod'] = cnt_power_lt_capacity(attr)
-    attr['mod'] = cnt_variable_resource_availability(attr)
-    attr['mod'] = cnt_maximum_reserve_enablement(attr)
+def add_basic_constraints(prob):
+    prob['mod'] = cnt_supply_eq_demand(attr)
+    prob['mod'] = cnt_meet_reserve_requirement(attr)
+    prob['mod'] = cnt_power_lt_capacity(attr)
+    prob['mod'] = cnt_variable_resource_availability(attr)
+    prob['mod'] = cnt_maximum_reserve_enablement(attr)
 
-    return attr
-
-
-def add_uc_constraints(attr):
-    attr['mod'] = cnt_commitment_continuity(attr)
-    attr['mod'] = cnt_max_units_committed(attr)
-    attr['mod'] = cnt_power_lt_committed_capacity(attr)
-    attr['mod'] = cnt_power_gt_min_stable_gen(attr)
-    attr['mod'] = cnt_minimum_up_time(attr)
-    attr['mod'] = cnt_minimum_down_time(attr)
-    attr['mod'] = cnt_limit_rocof(attr)
-    attr['mod'] = cnt_define_is_committed(attr)
-    attr['mod'] = cnt_ramp_rate_up(attr)
-    attr['mod'] = cnt_ramp_rate_down(attr)
-
-    return attr
+    return prob
 
 
-def add_storage_constraints(attr):
-    attr['mod'] = cnt_storage_continuity(attr)
-    attr['mod'] = cnt_storage_continuity_first_int(attr)
-    attr['mod'] = cnt_max_stored_energy(attr)
-    attr['mod'] = cnt_max_charge(attr)
+def add_uc_constraints(prob):
+    prob['mod'] = cnt_commitment_continuity(attr)
+    prob['mod'] = cnt_max_units_committed(attr)
+    prob['mod'] = cnt_power_lt_committed_capacity(attr)
+    prob['mod'] = cnt_power_gt_min_stable_gen(attr)
+    prob['mod'] = cnt_minimum_up_time(attr)
+    prob['mod'] = cnt_minimum_down_time(attr)
+    prob['mod'] = cnt_limit_rocof(attr)
+    prob['mod'] = cnt_define_is_committed(attr)
+    prob['mod'] = cnt_ramp_rate_up(attr)
+    prob['mod'] = cnt_ramp_rate_down(attr)
 
-    return attr
-
-
-def add_constraints_to_model(attr):
-    attr = add_basic_constraints(attr)
-    attr = add_storage_constraints(attr)
-
-    if attr['settings']['INCL_UNIT_COMMITMENT']:
-        attr = add_uc_constraints(attr)
-
-    return attr
+    return prob
 
 
-def add_all_constraints_to_dataframe(sets, data, vars, settings, mod, cnts_df):
-    attr = {'sets': sets, 'data': data, 'vars': vars, 'mod': mod, 'settings': settings}
+def add_storage_constraints(prob):
+    prob['mod'] = cnt_storage_continuity(attr)
+    prob['mod'] = cnt_storage_continuity_first_int(attr)
+    prob['mod'] = cnt_max_stored_energy(attr)
+    prob['mod'] = cnt_max_charge(attr)
+
+    return prob
+
+
+def add_constraints_to_model(prob):
+    prob = add_basic_constraints(attr)
+    prob = add_storage_constraints(attr)
+
+    if prob['settings']['INCL_UNIT_COMMITMENT']:
+        prob = add_uc_constraints(attr)
+
+    return prob
+
+
+def add_all_constraints_to_dataframe(prob, cnts_df):
+    import denkiuc.misc_functions as mf
 
     cnts_df.loc['supply_eq_demand', 'Cnst'] = cnt_supply_eq_demand
     cnts_df.loc['meet_reserve_requirement', 'Cnst'] = cnt_meet_reserve_requirement
@@ -607,6 +607,6 @@ def add_all_constraints_to_dataframe(sets, data, vars, settings, mod, cnts_df):
 
     cnts_to_add_df = cnts_df[cnts_df['Include'] == 1]
     for cnt in cnts_to_add_df.index:
-        attr['mod'] = cnts_df['Cnst'][cnt](attr)
+        prob['mod'] = cnts_df['Cnst'][cnt](prob)
 
-    return mod
+    return prob['mod']

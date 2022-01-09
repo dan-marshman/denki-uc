@@ -179,135 +179,147 @@ def define_scenario_probability(scenarios):
     return scenario_prob
 
 
-class Data:
-    def __init__(self, path_to_inputs, settings):
-        self.missing_values = dict()
-        self.traces = dict()
+def load_data(paths, settings):
+    data = dict()
+    missing_values = dict()
 
-        self.paths = {'inputs': path_to_inputs}
-        self.num_scenarios = settings['NUM_SCENARIOS']
-        self.load_stochastic_traces(settings)
-        self.load_ancillary_service_requirements()
-        self.load_unit_data()
-        self.load_initial_state()
+    data['traces'], paths = load_stochastic_traces(paths, settings)
+    data['as_reqt'], missing_values = load_ancillary_service_requirements(paths, missing_values)
+    data['units'] = load_unit_data(paths)
+    data['initial_state'], missing_values = load_initial_state(paths, missing_values)
 
-    def load_stochastic_traces(self, settings):
-        import denkiuc.arma_generator as ag
-        import sqlite3
+    data['missing_values'] = missing_values
 
-        arma_out_dir = os.path.join(self.paths['inputs'], 'arma_traces')
-        mf.make_folder(arma_out_dir)
+    return data
 
-        def check_if_new_arma_db_needed():
-            arma_dbs = os.listdir(arma_out_dir)
 
-            if len(arma_dbs) == 0:
-                ag.run_arma_model(self.paths['inputs'],
-                                  settings['NUM_SCENARIOS'],
-                                  settings['RANDOM_SEED'])
-                return
+def load_stochastic_traces(paths, settings):
+    import denkiuc.arma_generator as ag
+    import sqlite3
 
-            max_scenario_db = max([int(f[0:3]) for f in arma_dbs])
-            if settings['NUM_SCENARIOS'] > max_scenario_db:
-                ag.run_arma_model(self.paths['inputs'],
-                                  settings['NUM_SCENARIOS'],
-                                  settings['RANDOM_SEED'])
+    traces = dict()
+    paths['arma_out_dir'] = os.path.join(paths['inputs'], 'arma_traces')
+    mf.make_folder(paths['arma_out_dir'])
 
-        def find_arma_db():
-            for db_file in os.listdir(arma_out_dir):
-                if int(db_file[0:3]) >= settings['NUM_SCENARIOS']:
-                    return db_file
+    def check_if_new_arma_db_needed():
+        arma_dbs = os.listdir(paths['arma_out_dir'])
 
-        check_if_new_arma_db_needed()
-        db_file = find_arma_db()
-        arma_db_path = os.path.join(arma_out_dir, db_file)
+        if len(arma_dbs) == 0:
+            ag.run_arma_model(paths['inputs'], settings['NUM_SCENARIOS'], settings['RANDOM_SEED'])
+            return
 
-        db_connection = sqlite3.connect(arma_db_path)
-        for trace_name in ['wind', 'solarPV', 'demand']:
-            query = 'select * from %s' % trace_name
-            self.traces[trace_name] = pd.read_sql_query(query, db_connection, index_col='Interval')
-            self.traces[trace_name].columns = self.traces[trace_name].columns.map(int)
-        db_connection.close()
+        max_scenario_db = max([int(f[0:3]) for f in arma_dbs])
+        if settings['NUM_SCENARIOS'] > max_scenario_db:
+            ag.run_arma_model(paths['inputs'], settings['NUM_SCENARIOS'], settings['RANDOM_SEED'])
 
-    def load_unit_data(self):
-        self.paths['unit_data'] = os.path.join(self.paths['inputs'], 'unit_data.csv')
+    def find_arma_db():
+        for db_file in os.listdir(paths['arma_out_dir']):
+            if int(db_file[0:3]) >= settings['NUM_SCENARIOS']:
+                return db_file
 
-        if os.path.exists(self.paths['unit_data']):
-            self.units = pd.read_csv(self.paths['unit_data'], index_col=0)
+    check_if_new_arma_db_needed()
+    db_file = find_arma_db()
+    arma_db_path = os.path.join(paths['arma_out_dir'], db_file)
 
-        else:
-            print("Looking for unit data file - doesn't exist", self.paths['unit_data'])
+    db_connection = sqlite3.connect(arma_db_path)
+    for trace_name in ['wind', 'solarPV', 'demand']:
+        query = 'select * from %s' % trace_name
+        traces[trace_name] = pd.read_sql_query(query, db_connection, index_col='Interval')
+        traces[trace_name].columns = traces[trace_name].columns.map(int)
+    db_connection.close()
+
+    return traces, paths
+
+
+def load_ancillary_service_requirements(paths, missing_values):
+    reserve_requirement_path = os.path.join(paths['inputs'], 'reserve_requirement.csv')
+
+    if os.path.exists(reserve_requirement_path):
+        reserve_requirement = pd.read_csv(reserve_requirement_path, index_col=0)
+        missing_values['reserve_requirement'] = False
+
+    else:
+        print("Looking for reserve_requirement - doesn't exist", reserve_requirement_path)
+        reserve_requirement = False
+        missing_values['reserve_requirement'] = True
+
+    return reserve_requirement, missing_values
+
+
+def load_unit_data(paths):
+    paths['unit_data'] = os.path.join(paths['inputs'], 'unit_data.csv')
+
+    if os.path.exists(paths['unit_data']):
+        units = pd.read_csv(paths['unit_data'], index_col=0)
+        return units
+    else:
+        print("Looking for unit data file - doesn't exist", paths['unit_data'])
+        exit()
+
+
+def load_initial_state(paths, missing_values):
+    initial_state_path = os.path.join(paths['inputs'], 'initial_state.csv')
+
+    if os.path.exists(initial_state_path):
+        initial_state = pd.read_csv(initial_state_path, index_col=0)
+        missing_values['initial_state'] = False
+    else:
+        print("Looking for initial state file - doesn't exist", initial_state_path)
+        missing_values['initial_state'] = True
+        initial_state = False
+
+        return initial_state, missing_values
+
+
+def validate_initial_state_data(self, sets):
+    for u in sets['units_commit'].indices:
+        commit_val = self.initial_state['NumCommited'][u]
+        units_built_val = self.units['NoUnits'][u]
+
+        if commit_val != int(commit_val):
+            logging.error("Initial state had commit value of %f for unit %s" % (commit_val, u),
+                          " - changed to %d" % int(commit_val))
+            self.initial_state.loc[u, 'NumCommited'] = int(commit_val)
+
+        if commit_val > units_built_val:
+            logging.error('Initial state had more units committed (%f) for unit' % commit_val,
+                          ' %s than exist (%d).' % (u, units_built_val),
+                          ' Changed to %d.' % units_built_val)
+            self.initial_state.loc[u, 'NumCommited'] = units_built_val
+
+        if commit_val < 0:
+            logging.error('initial state had commit value of',
+                          '%f for unit %s.' % (commit_val, u),
+                          'Changed to 0.')
+            self.initial_state.loc[u, 'NumCommited'] = 0
+
+        initial_power_MW = self.initial_state['PowerGeneration_MW'][u]
+
+        minimum_initial_power_MW = \
+            self.initial_state['NumCommited'][u] \
+            * self.units['MinGen_pctCap'][u] * self.units['Capacity_MW'][u]
+
+        maximum_initial_power_MW = \
+            self.initial_state['NumCommited'][u] * self.units['Capacity_MW'][u]
+
+        if initial_power_MW < minimum_initial_power_MW:
+            print('Unit %s has its initial power < minimum generation based on commitment' % u)
+
+        if initial_power_MW > maximum_initial_power_MW:
+            print('Unit %s has initial power > maximum generation based on commitment' % u)
+
+    for u in sets['units_storage'].indices:
+        if self.initial_state['StorageLevel_frac'][u] > 1:
+            print('Unit %s has initial storage fraction greater than 1' % u)
             exit()
 
-    def load_initial_state(self):
-        initial_state_path = os.path.join(self.paths['inputs'], 'initial_state.csv')
 
-        if os.path.exists(initial_state_path):
-            self.initial_state = pd.read_csv(initial_state_path, index_col=0)
-            self.missing_values['initial_state'] = False
+def add_default_values(self, sets):
+    if self.missing_values['reserve_requirement']:
+        self.reserve_requirement = \
+            pd.DataFrame(0, index=sets['intervals'].indices, columns=sets['reserves'])
 
-        else:
-            print("Looking for initial state file - doesn't exist", initial_state_path)
-            self.missing_values['initial_state'] = True
 
-    def validate_initial_state_data(self, sets):
-        for u in sets['units_commit'].indices:
-            commit_val = self.initial_state['NumCommited'][u]
-            units_built_val = self.units['NoUnits'][u]
-
-            if commit_val != int(commit_val):
-                logging.error("Initial state had commit value of %f for unit %s" % (commit_val, u),
-                              " - changed to %d" % int(commit_val))
-                self.initial_state.loc[u, 'NumCommited'] = int(commit_val)
-
-            if commit_val > units_built_val:
-                logging.error('Initial state had more units committed (%f) for unit' % commit_val,
-                              ' %s than exist (%d).' % (u, units_built_val),
-                              ' Changed to %d.' % units_built_val)
-                self.initial_state.loc[u, 'NumCommited'] = units_built_val
-
-            if commit_val < 0:
-                logging.error('initial state had commit value of',
-                              '%f for unit %s.' % (commit_val, u),
-                              'Changed to 0.')
-                self.initial_state.loc[u, 'NumCommited'] = 0
-
-            initial_power_MW = self.initial_state['PowerGeneration_MW'][u]
-
-            minimum_initial_power_MW = \
-                self.initial_state['NumCommited'][u] \
-                * self.units['MinGen_pctCap'][u] * self.units['Capacity_MW'][u]
-
-            maximum_initial_power_MW = \
-                self.initial_state['NumCommited'][u] * self.units['Capacity_MW'][u]
-
-            if initial_power_MW < minimum_initial_power_MW:
-                print('Unit %s has its initial power < minimum generation based on commitment' % u)
-
-            if initial_power_MW > maximum_initial_power_MW:
-                print('Unit %s has initial power > maximum generation based on commitment' % u)
-
-        for u in sets['units_storage'].indices:
-            if self.initial_state['StorageLevel_frac'][u] > 1:
-                print('Unit %s has initial storage fraction greater than 1' % u)
-                exit()
-
-    def load_ancillary_service_requirements(self):
-        reserve_requirement_path = os.path.join(self.paths['inputs'], 'reserve_requirement.csv')
-
-        if os.path.exists(reserve_requirement_path):
-            self.reserve_requirement = pd.read_csv(reserve_requirement_path, index_col=0)
-            self.missing_values['reserve_requirement'] = False
-
-        else:
-            print("Looking for reserve_requirement - doesn't exist", reserve_requirement_path)
-            self.missing_values['reserve_requirement'] = True
-
-    def add_default_values(self, sets):
-        if self.missing_values['reserve_requirement']:
-            self.reserve_requirement = \
-                pd.DataFrame(0, index=sets['intervals'].indices, columns=sets['reserves'])
-
-    def replace_reserve_requirement_index(self):
-        first_trace = list(self.traces.keys())[0]
-        self.reserve_requirement.index = self.traces[first_trace].index
+def replace_reserve_requirement_index(self):
+    first_trace = list(self.traces.keys())[0]
+    self.reserve_requirement.index = self.traces[first_trace].index

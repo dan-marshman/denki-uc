@@ -7,175 +7,187 @@ import pulp as pp
 import sys
 
 
-class ucModel():
-    def __init__(self, name, path_to_inputs):
-        self.name = name
-        self.paths = denkiuc.denki_paths.dk_paths
-        self.paths = {'inputs': path_to_inputs}
+def run_opt_problem(name, prob_path):
+    prob = init_prob(name)
 
-    def prepare_model(self):
-        mf.check_input_dir_exists(self.paths['inputs'])
-        self.load_settings()
-        self.load_data()
-        self.arrange_sets_and_data()
-        self.init_results_dict()
-        self.add_variables()
-        self.build_model()
+    prob['paths'] = init_paths(prob_path)
+    prob['settings'] = ld.load_settings(prob['paths'])
+    prob['paths'] = complete_paths(prob['paths'], prob['settings'], prob['name'])
 
-    def load_settings(self):
-        self.paths['settings'] = os.path.join(self.paths['inputs'], 'settings.csv')
-        self.settings = ld.load_settings(self.paths)
-        self.paths['outputs'] = os.path.join(self.settings['OUTPUTS_PATH'], self.name)
-        mf.make_folder(self.paths['outputs'])
-        mf.set_logger_path(self.paths['outputs'])
+    mf.make_folder(prob['paths']['outputs'])
+    mf.set_logger_path(prob['paths']['outputs'])
 
-    def load_data(self):
-        self.data = ld.Data(self.paths['inputs'], self.settings)
+    prob['data'] = ld.load_data(prob['paths'], prob['settings'])
+    prob['sets'], prob['data'], prob['m_sets'] = \
+        arrange_sets_and_data(prob['data'], prob['settings'])
 
-    def arrange_sets_and_data(self):
-        self.sets = ld.load_master_sets(self.data, self.settings)
-        self.sets = ld.load_unit_subsets(self.data, self.sets)
-        self.sets = ld.add_reserve_subsets(self.sets)
-        self.sets = ld.load_interval_subsets(self.settings, self.sets)
-        self.m_sets = ld.make_multi_sets(self.sets)
+    prob['vars'] = add_variables(prob['m_sets'])
 
-        self.data.probability_of_scenario = ld.define_scenario_probability(self.sets['scenarios'])
+    prob['mod'] = build_model(prob)
+    prob['stats'] = run_model(prob)
 
-        if not self.data.missing_values['initial_state']:
-            self.data.validate_initial_state_data(self.sets)
 
-        self.data.add_default_values(self.sets)
-        self.data.replace_reserve_requirement_index()
+def init_prob(name):
+    prob = dict()
+    prob['name'] = name
+    return prob
 
-        print("\nParameters and sets are ready")
 
-    def init_results_dict(self):
-        self.results = dict()
+def init_paths(prob_path):
+    paths = denkiuc.denki_paths.dk_paths
+    paths['inputs'] = prob_path
+    paths['settings'] = os.path.join(paths['inputs'], 'settings.csv')
+    return paths
 
-    def add_variables(self):
-        vars = dict()
-        m_sets = self.m_sets
 
-        vars['power_generated'] = va.dkVar('power_generated', 'MW', m_sets['in_sc_un'])
+def complete_paths(paths, settings, name):
+    paths['outputs'] = os.path.join(settings['OUTPUTS_PATH'], name)
+    paths['results'] = os.path.join(paths['outputs'], 'results')
+    paths['final_state'] = os.path.join(paths['results'], 'final_state.db')
+    paths['LA_results_db'] = os.path.join(paths['results'], 'LA_results.db')
+    paths['TR_results_db'] = os.path.join(paths['results'], 'LA_trimmed_results.db')
 
-        vars['num_committed'] = va.dkVar('num_committed', 'NumUnits', m_sets['in_sc_unco'], 'I')
-        vars['inertia_provided'] = va.dkVar('inertia_provided', 'MW.s', m_sets['in_sc_unco'])
-        vars['is_committed'] = va.dkVar('is_committed', 'Binary', m_sets['in_sc_unco'], 'B')
-        vars['num_shutting_down'] = \
-            va.dkVar('num_shutting_down', 'NumUnits', m_sets['in_sc_unco'], 'I')
-        vars['num_starting_up'] = \
-            va.dkVar('num_starting_up', 'NumUnits', m_sets['in_sc_unco'], 'I')
+    return paths
 
-        vars['reserve_enabled'] = va.dkVar('reserve_enabled', 'MW', m_sets['in_sc_un_re'])
 
-        vars['charge_after_losses'] = va.dkVar('charge_after_losses', 'MW', m_sets['in_sc_unst'])
-        vars['energy_in_reservoir'] = va.dkVar('energy_in_reservoir', 'MWh', m_sets['in_sc_unst'])
+def arrange_sets_and_data(data, settings):
+    sets = ld.load_master_sets(data, settings)
+    sets = ld.load_unit_subsets(data, sets)
+    sets = ld.add_reserve_subsets(sets)
+    sets = ld.load_interval_subsets(settings, sets)
+    m_sets = ld.make_multi_sets(sets)
 
-        vars['unserved_inertia'] = va.dkVar('unserved_inertia', 'MW.s', m_sets['in'])
+    data.probability_of_scenario = ld.define_scenario_probability(sets['scenarios'])
 
-        vars['unserved_power'] = va.dkVar('unserved_power', 'MW', m_sets['in_sc'])
+    if not data.missing_values['initial_state']:
+        data.validate_initial_state_data(sets)
 
-        vars['unserved_reserve'] = va.dkVar('unserved_reserve', 'MW', m_sets['in_sc_re'])
+    data.add_default_values(sets)
+    data.replace_reserve_requirement_index()
 
-        self.vars = vars
+    print("\nParameters and sets are ready")
 
-    def run_model(self):
-        from denkiuc.add_custom_results import add_final_state
-        import sqlite3
+    return sets, data, m_sets
 
-        self.solve_model()
-        self.store_results()
 
-        self.final_state = add_final_state(self.data, self.vars, self.sets, self.paths)
+def add_variables(m_sets):
+    vars = dict()
 
-        self.paths['final_state'] = os.path.join(self.paths['results'], 'final_state.db')
-        connection = sqlite3.connect(self.paths['final_state'])
-        for name, series in self.final_state.items():
-            series.to_sql(name, connection)
+    vars['power_generated'] = va.dkVar('power_generated', 'MW', m_sets['in_sc_un'])
 
-        connection.close()
-        print("Final state db written")
+    vars['num_committed'] = va.dkVar('num_committed', 'NumUnits', m_sets['in_sc_unco'], 'I')
+    vars['inertia_provided'] = va.dkVar('inertia_provided', 'MW.s', m_sets['in_sc_unco'])
+    vars['is_committed'] = va.dkVar('is_committed', 'Binary', m_sets['in_sc_unco'], 'B')
+    vars['num_shutting_down'] = va.dkVar('num_shutting_down', 'NumUnits', m_sets['in_sc_unco'], 'I')
+    vars['num_starting_up'] = va.dkVar('num_starting_up', 'NumUnits', m_sets['in_sc_unco'], 'I')
 
-    def build_model(self):
-        import denkiuc.constraints as cnts
-        import denkiuc.obj_fn as obj
+    vars['reserve_enabled'] = va.dkVar('reserve_enabled', 'MW', m_sets['in_sc_un_re'])
 
-        self.mod = pp.LpProblem(self.name, sense=pp.LpMinimize)
-        self.mod += obj.obj_fn(self.sets, self.data, self.vars, self.settings)
+    vars['charge_after_losses'] = va.dkVar('charge_after_losses', 'MW', m_sets['in_sc_unst'])
+    vars['energy_in_reservoir'] = va.dkVar('energy_in_reservoir', 'MWh', m_sets['in_sc_unst'])
 
-        self.cnts_df = cnts.create_cnts_df(self.paths['inputs'])
-        self.mod = cnts.add_all_constraints_to_dataframe(self.sets,
-                                                         self.data,
-                                                         self.vars,
-                                                         self.settings,
-                                                         self.mod,
-                                                         self.cnts_df)
+    vars['unserved_inertia'] = va.dkVar('unserved_inertia', 'MW.s', m_sets['in'])
 
-    def solve_model(self):
-        import time
+    vars['unserved_power'] = va.dkVar('unserved_power', 'MW', m_sets['in_sc'])
 
-        print('Begin solving the model\nOptimising...')
+    vars['unserved_reserve'] = va.dkVar('unserved_reserve', 'MW', m_sets['in_sc_re'])
 
-        time_start_solve = time.perf_counter()
+    return vars
 
-        self.mod.solve(pp.PULP_CBC_CMD(timeLimit=5,
-                                       threads=0,
-                                       msg=0,
-                                       gapRel=0.01))
 
-        print("Finished optimising\n")
+def build_model(prob):
+    import denkiuc.constraints as cnts
+    import denkiuc.obj_fn as obj
 
-        time_end_solve = time.perf_counter()
-        self.solver_time = time_end_solve - time_start_solve
+    prob['mod'] = pp.LpProblem(prob['name'], sense=pp.LpMinimize)
+    prob['mod'] += obj.obj_fn(prob)
 
-        self.optimality_status = pp.LpStatus[self.mod.status]
-        print('Model status: %s' % self.optimality_status)
-        mf.exit_if_infeasible(self.optimality_status, self.name)
+    cnts_df = cnts.create_cnts_df(prob['paths']['inputs'])
+    prob['mod'] = cnts.add_all_constraints_to_dataframe(prob, cnts_df)
 
-        self.opt_fn_value = self.mod.objective.value()
-        print('Objective function = %f' % self.opt_fn_value)
+    return prob['mod']
 
-        print('Solve time = %.2f sec\n' % self.solver_time)
 
-    def store_results(self):
-        import sqlite3
+def run_model(prob):
+    from denkiuc.add_custom_results import add_final_state
+    import sqlite3
 
-        def setup_results_paths():
-            self.paths['results'] = os.path.join(self.paths['outputs'], 'results')
-            self.paths['LA_results_db'] = os.path.join(self.paths['results'], 'LA_results.db')
-            self.paths['TR_results_db'] = \
-                os.path.join(self.paths['results'], 'LA_trimmed_results.db')
-            os.makedirs(self.paths['results'])
+    sets, data, vars, mod, paths, name = \
+        mf.prob_unpacker(prob, ['sets', 'data', 'vars', 'mod', 'paths', 'name'])
 
-        def make_results_dfs():
-            for name, dkvar in self.vars.items():
-                dkvar.to_df()
-                dkvar.remove_LA_int_from_results(self.sets['main_intervals'].indices)
+    stats = solve_model(mod, name)
+    store_results(prob)
 
-        def write_LA_results():
-            LA_connection = sqlite3.connect(self.paths['LA_results_db'])
-            for name, dkvar in self.vars.items():
-                dkvar.write_to_csv(self.paths['results'], removed_LA=False)
-                dkvar.result_df.to_sql(name, LA_connection)
-            LA_connection.close()
-            print("Variables written as DB and CSV (with look ahead)")
+    final_state = add_final_state(data, vars, sets, paths)
 
-        def write_TR_results():
-            TR_connection = sqlite3.connect(self.paths['TR_results_db'])
-            for name, dkvar in self.vars.items():
-                dkvar.write_to_csv(self.paths['results'], removed_LA=True)
-                dkvar.result_df_trimmed.to_sql(name, TR_connection)
-            TR_connection.close()
-            print("Variables written as DB and CSV (without look ahead)")
+    connection = sqlite3.connect(paths['final_state'])
+    for name, series in final_state.items():
+        series.to_sql(name, connection)
 
-        setup_results_paths()
-        make_results_dfs()
+    connection.close()
+    print("Final state db written")
 
-        if self.settings['WRITE_RESULTS_WITH_LOOK_AHEAD']:
-            write_LA_results()
+    return stats
 
-        if self.settings['WRITE_RESULTS_WITHOUT_LOOK_AHEAD']:
-            write_TR_results()
+
+def solve_model(mod, name):
+    import time
+
+    def print_stats(stats):
+        print('Model status: %s' % stats['optimality_status'])
+        print('Objective function = %f' % stats['ob_fn_value'])
+        print('Solve time = %.2f sec\n' % stats['solver_time'])
+
+    time_start_solve = time.perf_counter()
+    print('Begin solving the model\nOptimising...')
+    mod.solve(pp.PULP_CBC_CMD(timeLimit=5, threads=0, msg=0, gapRel=0.01))
+    print("Finished optimising\n")
+    time_end_solve = time.perf_counter()
+
+    stats = dict()
+    stats['solver_time'] = time_end_solve - time_start_solve
+    stats['optimality_status'] = pp.LpStatus[mod.status]
+    mf.exit_if_infeasible(stats['optimality_status'], name)
+    stats['ob_fn_value'] = mod.objective.value()
+    print_stats(stats)
+
+    return stats
+
+
+def store_results(prob):
+    import sqlite3
+
+    sets, settings, vars, paths = mf.prob_unpacker(prob, ['sets', 'settings', 'vars', 'paths'])
+
+    def make_results_dfs(vars, sets):
+        for name, dkvar in vars.items():
+            dkvar.to_df()
+            dkvar.remove_LA_int_from_results(sets['main_intervals'].indices)
+
+    def write_LA_results(vars, paths):
+        LA_connection = sqlite3.connect(paths['LA_results_db'])
+        for name, dkvar in vars.items():
+            dkvar.write_to_csv(paths['results'], removed_LA=False)
+            dkvar.result_df.to_sql(name, LA_connection)
+        LA_connection.close()
+        print("Variables written as DB and CSV (with look ahead)")
+
+    def write_TR_results(vars, paths):
+        TR_connection = sqlite3.connect(paths['TR_results_db'])
+        for name, dkvar in vars.items():
+            dkvar.write_to_csv(paths['results'], removed_LA=True)
+            dkvar.result_df_trimmed.to_sql(name, TR_connection)
+        TR_connection.close()
+        print("Variables written as DB and CSV (without look ahead)")
+
+    os.makedirs(paths['results'])
+    make_results_dfs(vars, sets)
+
+    if settings['WRITE_RESULTS_WITH_LOOK_AHEAD']:
+        write_LA_results(vars, paths)
+
+    if settings['WRITE_RESULTS_WITHOUT_LOOK_AHEAD']:
+        write_TR_results(vars, paths)
 
 
 if __name__ == '__main__':
@@ -185,4 +197,4 @@ if __name__ == '__main__':
 
     name = sys.argv[1]
     path_to_inputs = sys.argv[2]
-    model = ucModel(name, path_to_inputs)
+    model = run_opt_problem(name, path_to_inputs)

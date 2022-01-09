@@ -77,3 +77,7 @@ def load_default_file(filename):
 
 def unpack_attr(attr):
     return attr['sets'], attr['data'], attr['vars'], attr['mod'],
+
+
+def prob_unpacker(prob, item_list):
+    return [prob[item] for item in item_list]
