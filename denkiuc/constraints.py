@@ -1,11 +1,9 @@
 import pulp as pp
+import denkiuc.misc_functions as mf
 
 
 def cnt_supply_eq_demand(attr):
-    sets = attr['sets']
-    data = attr['data']
-    vars = attr['vars']
-    mod = attr['mod']
+    sets, data, vars, mod = mf.unpack_attr(attr)
 
     for i in sets['intervals'].indices:
         for s in sets['scenarios'].indices:
@@ -28,10 +26,7 @@ def cnt_supply_eq_demand(attr):
 
 
 def cnt_meet_reserve_requirement(attr):
-    sets = attr['sets']
-    data = attr['data']
-    vars = attr['vars']
-    mod = attr['mod']
+    sets, data, vars, mod = mf.unpack_attr(attr)
 
     for r in sets['reserves'].indices:
         for i in sets['intervals'].indices:
@@ -52,12 +47,7 @@ def cnt_meet_reserve_requirement(attr):
 
 
 def cnt_variable_resource_availability(attr):
-    sets = attr['sets']
-    data = attr['data']
-    vars = attr['vars']
-    mod = attr['mod']
-
-    import denkiuc.misc_functions as mf
+    sets, data, vars, mod = mf.unpack_attr(attr)
 
     for u in sets['units_variable'].indices:
         region = data.units['Region'][u]
@@ -80,10 +70,7 @@ def cnt_variable_resource_availability(attr):
 
 
 def cnt_commitment_continuity(attr):
-    sets = attr['sets']
-    data = attr['data']
-    vars = attr['vars']
-    mod = attr['mod']
+    sets, data, vars, mod = mf.unpack_attr(attr)
 
     for i in sets['intervals'].indices:
         for u in sets['units_commit'].indices:
@@ -121,9 +108,7 @@ def cnt_commitment_continuity(attr):
 
 
 def cnt_inflexible_commitment(attr):
-    sets = attr['sets']
-    vars = attr['vars']
-    mod = attr['mod']
+    sets, data, vars, mod = mf.unpack_attr(attr)
 
     for i in sets['intervals'].indices:
         for s in sets['scenarios'].indices:
@@ -142,10 +127,7 @@ def cnt_inflexible_commitment(attr):
 
 
 def cnt_max_units_committed(attr):
-    sets = attr['sets']
-    data = attr['data']
-    vars = attr['vars']
-    mod = attr['mod']
+    sets, data, vars, mod = mf.unpack_attr(attr)
 
     for i in sets['intervals'].indices:
         for s in sets['scenarios'].indices:
@@ -163,10 +145,7 @@ def cnt_max_units_committed(attr):
 
 
 def cnt_power_lt_committed_capacity(attr):
-    sets = attr['sets']
-    data = attr['data']
-    vars = attr['vars']
-    mod = attr['mod']
+    sets, data, vars, mod = mf.unpack_attr(attr)
 
     for i in sets['intervals'].indices:
         for s in sets['scenarios'].indices:
@@ -186,10 +165,7 @@ def cnt_power_lt_committed_capacity(attr):
 
 
 def cnt_power_gt_min_stable_gen(attr):
-    sets = attr['sets']
-    data = attr['data']
-    vars = attr['vars']
-    mod = attr['mod']
+    sets, data, vars, mod = mf.unpack_attr(attr)
 
     for i in sets['intervals'].indices:
         for s in sets['scenarios'].indices:
@@ -210,10 +186,7 @@ def cnt_power_gt_min_stable_gen(attr):
 
 
 def cnt_power_lt_capacity(attr):
-    sets = attr['sets']
-    data = attr['data']
-    vars = attr['vars']
-    mod = attr['mod']
+    sets, data, vars, mod = mf.unpack_attr(attr)
 
     for i in sets['intervals'].indices:
         for s in sets['scenarios'].indices:
@@ -233,10 +206,7 @@ def cnt_power_lt_capacity(attr):
 
 
 def cnt_minimum_up_time(attr):
-    sets = attr['sets']
-    data = attr['data']
-    vars = attr['vars']
-    mod = attr['mod']
+    sets, data, vars, mod = mf.unpack_attr(attr)
     settings = attr['settings']
 
     i0 = min(sets['intervals'].indices)
@@ -264,10 +234,7 @@ def cnt_minimum_up_time(attr):
 
 
 def cnt_minimum_down_time(attr):
-    sets = attr['sets']
-    data = attr['data']
-    vars = attr['vars']
-    mod = attr['mod']
+    sets, data, vars, mod = mf.unpack_attr(attr)
     settings = attr['settings']
 
     i0 = min(sets['intervals'].indices)
@@ -296,9 +263,7 @@ def cnt_minimum_down_time(attr):
 
 
 def cnt_storage_continuity(attr):
-    sets = attr['sets']
-    vars = attr['vars']
-    mod = attr['mod']
+    sets, data, vars, mod = mf.unpack_attr(attr)
     settings = attr['settings']
 
     for i in sets['intervals'].indices:
@@ -321,10 +286,7 @@ def cnt_storage_continuity(attr):
 
 
 def cnt_storage_continuity_first_int(attr):
-    sets = attr['sets']
-    data = attr['data']
-    vars = attr['vars']
-    mod = attr['mod']
+    sets, data, vars, mod = mf.unpack_attr(attr)
     settings = attr['settings']
 
     for s in sets['scenarios'].indices:
@@ -347,10 +309,7 @@ def cnt_storage_continuity_first_int(attr):
 
 
 def cnt_max_stored_energy(attr):
-    sets = attr['sets']
-    data = attr['data']
-    vars = attr['vars']
-    mod = attr['mod']
+    sets, data, vars, mod = mf.unpack_attr(attr)
 
     for i in sets['intervals'].indices:
         for s in sets['scenarios'].indices:
@@ -369,10 +328,7 @@ def cnt_max_stored_energy(attr):
 
 
 def cnt_max_charge(attr):
-    sets = attr['sets']
-    data = attr['data']
-    vars = attr['vars']
-    mod = attr['mod']
+    sets, data, vars, mod = mf.unpack_attr(attr)
 
     for i in sets['intervals'].indices:
         for s in sets['scenarios'].indices:
@@ -389,12 +345,7 @@ def cnt_max_charge(attr):
 
 
 def cnt_maximum_reserve_enablement(attr):
-    sets = attr['sets']
-    data = attr['data']
-    vars = attr['vars']
-    mod = attr['mod']
-
-    import denkiuc.misc_functions as mf
+    sets, data, vars, mod = mf.unpack_attr(attr)
 
     for u in sets['units'].indices:
         if u in sets['units_commit'].indices:
@@ -430,13 +381,8 @@ def cnt_maximum_reserve_enablement(attr):
 
 
 def cnt_limit_rocof(attr):
-    sets = attr['sets']
-    data = attr['data']
-    vars = attr['vars']
-    mod = attr['mod']
+    sets, data, vars, mod = mf.unpack_attr(attr)
     settings = attr['settings']
-
-    import denkiuc.misc_functions as mf
 
     def define_rocof_condition(settings, contingency_size, available_inertia):
         condition = \
@@ -489,10 +435,7 @@ def cnt_limit_rocof(attr):
 
 
 def cnt_define_is_committed(attr):
-    sets = attr['sets']
-    data = attr['data']
-    vars = attr['vars']
-    mod = attr['mod']
+    sets, data, vars, mod = mf.unpack_attr(attr)
 
     for i in sets['intervals'].indices:
         for s in sets['scenarios'].indices:
@@ -512,10 +455,7 @@ def cnt_define_is_committed(attr):
 
 
 def cnt_ramp_rate_up(attr):
-    sets = attr['sets']
-    data = attr['data']
-    vars = attr['vars']
-    mod = attr['mod']
+    sets, data, vars, mod = mf.unpack_attr(attr)
     settings = attr['settings']
 
     for i in sets['intervals'].indices:
@@ -552,10 +492,7 @@ def cnt_ramp_rate_up(attr):
 
 
 def cnt_ramp_rate_down(attr):
-    sets = attr['sets']
-    data = attr['data']
-    vars = attr['vars']
-    mod = attr['mod']
+    sets, data, vars, mod = mf.unpack_attr(attr)
     settings = attr['settings']
 
     for i in sets['intervals'].indices:

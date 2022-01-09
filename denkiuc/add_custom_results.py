@@ -108,8 +108,6 @@ def add_dispatch_result(data, results, new_results):
 
     dispatch = add_level_and_join(dispatch, -1 * results['charge_after_losses'], 'charge')
     dispatch = add_level_and_join(dispatch, -1 * new_results['charge_losses'], 'losses')
-    print(dispatch)
-    exit()
     dispatch = add_level_and_join(dispatch, -1 * data.traces['demand'], 'demand')
 
     unserved_df = results['unserved_power'].copy()
@@ -119,26 +117,21 @@ def add_dispatch_result(data, results, new_results):
     return dispatch
 
 
-def add_final_state(data, results, sets):
-    df_cols = ['PowerGeneration_MW', 'NumCommited', 'StorageLevel_frac']
-    final_state = pd.DataFrame(columns=df_cols, index=sets['units'].indices)
-
+def add_final_state(data, vars, sets, paths):
+    final_state = dict()
     final_interval = max(sets['main_intervals'].indices)
     first_scenario = min(sets['scenarios'].indices)
 
+    final_state['power_generated'] = pd.Series(index=sets['units'].indices)
     for u in sets['units'].indices:
-        final_state.loc[u, 'PowerGeneration_MW'] = \
-            results['power_generated'][(first_scenario, u)][final_interval]
+        final_state['power_generated'].loc[u] = \
+            vars['power_generated'].result_df[(first_scenario, u)][final_interval]
 
-    for u in sets['units_commit'].indices:
-        final_state.loc[u, 'NumCommited'] = \
-            results['num_commited'][(first_scenario, u)][final_interval]
-
+    final_state['storage_fraction'] = pd.Series(index=sets['units_storage'].indices)
     for u in sets['units_storage'].indices:
-        final_state.loc[u, 'StorageLevel_frac'] = \
-            results['energy_in_reservoir'][(first_scenario, u)][final_interval] \
+        final_state['storage_fraction'].loc[u] = \
+            vars['energy_in_reservoir'].result_df[(first_scenario, u)][final_interval] \
             / (data.units['Capacity_MW'][u] * data.units['StorageCap_h'][u])
-
     return final_state
 
 

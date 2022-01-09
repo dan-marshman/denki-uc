@@ -73,3 +73,7 @@ def load_default_file(filename):
     file_path = os.path.join(default_files_path, filename)
     data = pd.read_csv(file_path, index_col=0)
     return data
+
+
+def unpack_attr(attr):
+    return attr['sets'], attr['data'], attr['vars'], attr['mod'],

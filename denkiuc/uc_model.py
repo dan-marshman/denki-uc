@@ -47,7 +47,7 @@ class ucModel():
         self.data.add_default_values(self.sets)
         self.data.replace_reserve_requirement_index()
 
-        print("\n---- Parameters and sets are ready ----\n")
+        print("\nParameters and sets are ready")
 
     def init_results_dict(self):
         self.results = dict()
@@ -80,10 +80,21 @@ class ucModel():
         self.vars = vars
 
     def run_model(self):
+        from denkiuc.add_custom_results import add_final_state
+        import sqlite3
+
         self.solve_model()
         self.store_results()
 
-        print("\n---- Model solved ----\n")
+        self.final_state = add_final_state(self.data, self.vars, self.sets, self.paths)
+
+        self.paths['final_state'] = os.path.join(self.paths['results'], 'final_state.db')
+        connection = sqlite3.connect(self.paths['final_state'])
+        for name, series in self.final_state.items():
+            series.to_sql(name, connection)
+
+        connection.close()
+        print("Final state db written")
 
     def build_model(self):
         import denkiuc.constraints as cnts
@@ -94,16 +105,16 @@ class ucModel():
 
         self.cnts_df = cnts.create_cnts_df(self.paths['inputs'])
         self.mod = cnts.add_all_constraints_to_dataframe(self.sets,
-                                                          self.data,
-                                                          self.vars,
-                                                          self.settings,
-                                                          self.mod,
-                                                          self.cnts_df)
+                                                         self.data,
+                                                         self.vars,
+                                                         self.settings,
+                                                         self.mod,
+                                                         self.cnts_df)
 
     def solve_model(self):
         import time
 
-        print('Begin solving the model')
+        print('Begin solving the model\nOptimising...')
 
         time_start_solve = time.perf_counter()
 
@@ -111,6 +122,8 @@ class ucModel():
                                        threads=0,
                                        msg=0,
                                        gapRel=0.01))
+
+        print("Finished optimising\n")
 
         time_end_solve = time.perf_counter()
         self.solver_time = time_end_solve - time_start_solve
@@ -121,6 +134,8 @@ class ucModel():
 
         self.opt_fn_value = self.mod.objective.value()
         print('Objective function = %f' % self.opt_fn_value)
+
+        print('Solve time = %.2f sec\n' % self.solver_time)
 
     def store_results(self):
         import sqlite3
@@ -143,6 +158,7 @@ class ucModel():
                 dkvar.write_to_csv(self.paths['results'], removed_LA=False)
                 dkvar.result_df.to_sql(name, LA_connection)
             LA_connection.close()
+            print("Variables written as DB and CSV (with look ahead)")
 
         def write_TR_results():
             TR_connection = sqlite3.connect(self.paths['TR_results_db'])
@@ -150,6 +166,7 @@ class ucModel():
                 dkvar.write_to_csv(self.paths['results'], removed_LA=True)
                 dkvar.result_df_trimmed.to_sql(name, TR_connection)
             TR_connection.close()
+            print("Variables written as DB and CSV (without look ahead)")
 
         setup_results_paths()
         make_results_dfs()

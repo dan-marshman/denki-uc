@@ -3,8 +3,12 @@ import denkiuc.load_data as ld
 import denkiuc.misc_functions as mf
 import denkiuc.uc_model as uc
 import denkiuc.arma_generator as ag
+from rich.console import Console
 import os
 import time
+
+
+console = Console()
 
 
 class denkiSeries():
@@ -62,28 +66,57 @@ class denkiSeries():
     def cycle_days(self):
         import pandas as pd
 
-        all_days = dict()
-        all_days_folder = os.path.join(self.paths['inputs'], 'days')
-        all_days_status = pd.DataFrame(columns=['OptimalityStatus'])
-
-        for d in range(self.num_days):
+        def get_days_intervals(d, num_keep_intervals, intervals_per_day):
             first_interval = self.settings['NUM_KEEP_INTERVALS'] * d
             last_interval = first_interval + self.settings['INTERVALS_PER_DAY']
             days_intervals = list(range(first_interval, last_interval))
+            return days_intervals
+
+        all_days = dict()
+        all_days_folder = os.path.join(self.paths['inputs'], 'days')
+        self.days_summary = pd.DataFrame(columns=['OptimalityStatus'])
+
+        for d in range(self.num_days):
+            days_intervals = \
+                get_days_intervals(d,
+                                   self.settings['NUM_KEEP_INTERVALS'],
+                                   self.settings['INTERVALS_PER_DAY']
+                                   )
+
             days_traces = self.filter_days_traces(days_intervals)
+
             day = denkiDay(d, days_traces, all_days_folder, self.paths['outputs'])
             day.solve_day()
             all_days['day' + str(d)] = day
-            all_days_status = all_days_status.append(pd.Series(day.days_status, name=day.name))
-
-        print(all_days_status)
+            self.days_summary = self.days_summary.append(pd.Series(day.days_status, name=day.name))
+        console.print("------------------------------------------------------")
+        console.print("\nAll days have been run\n\n", style='bold')
 
     def filter_days_traces(self, days_intervals):
         days_traces = dict()
+
         for trace_name, trace in self.traces.items():
             trace.index = trace.index.set_names(['Interval'])
             days_traces[trace_name] = trace.loc[days_intervals, :]
+
         return days_traces
+
+    def print_status_table(self):
+        from rich.table import Table
+
+        all_days_table = Table(show_header=True, header_style='bold magenta')
+
+        all_days_table.add_column('Day')
+        for col in self.days_summary.columns:
+            all_days_table.add_column(col)
+
+        for index, row_vals in enumerate(self.days_summary.values.tolist()):
+            row = [str(index)]
+            row += [str(x) for x in row_vals]
+            all_days_table.add_row(*row)
+
+        console.print("Summary information", style='bold')
+        console.print(all_days_table)
 
 
 class denkiDay():
@@ -93,7 +126,7 @@ class denkiDay():
 
         self.time_start_day = time.perf_counter()
 
-        print('---- Running day ----', day_number)
+        console.print('---- Running day %d ----' % day_number, style="bold red")
         self.name = 'day' + str(day_number)
         self.all_days_folder = all_days_folder
         self.all_days_inputs_folder = os.path.dirname(all_days_folder)
@@ -117,8 +150,8 @@ class denkiDay():
             trace.to_csv(dst_path)
 
         if os.path.exists(self.prev_day_outputs_folder):
-            src_path = os.path.join(self.prev_day_outputs_folder, 'results', 'final_state.csv')
-            dst_path = os.path.join(self.input_path, 'initial_state.csv')
+            src_path = os.path.join(self.prev_day_outputs_folder, 'results', 'final_state.db')
+            dst_path = os.path.join(self.input_path, 'initial_state.db')
             shutil.copyfile(src_path, dst_path)
 
     def solve_day(self):
@@ -134,8 +167,11 @@ class denkiDay():
         time_end_day = time.perf_counter()
         self.days_status['TotalRunTime'] = time_end_day - self.time_start_day
 
+        print()
+
 
 paths = denkiuc.denki_paths.dk_paths
 path_to_test_series = os.path.join(paths['denki_examples'], 'test_series')
 test_series = denkiSeries('test_series', path_to_test_series)
 test_series.cycle_days()
+test_series.print_status_table()
