@@ -11,112 +11,150 @@ import time
 console = Console()
 
 
-class denkiSeries():
-    def __init__(self, name, path_to_inputs):
-        self.name = name
-        self.paths = denkiuc.denki_paths.dk_paths
-        self.paths['inputs'] = path_to_inputs
-        self.paths['settings'] = os.path.join(self.paths['inputs'], 'settings.csv')
-        self.setup()
+def run_series(name, prob_path):
+    series = init_series(name)
 
-    def setup(self):
-        self.settings = ld.load_settings(self.paths)
-        self.paths['outputs'] = self.settings['OUTPUTS_PATH']
-        mf.make_folder(self.paths['outputs'])
+    series['paths'] = init_paths(prob_path)
+    series['settings'] = ld.load_settings(series['paths'])
+    series['paths'] = complete_paths(series['paths'], series['settings'], series['name'])
+    mf.make_folder(paths['outputs'])
 
-        self.settings['NUM_KEEP_INTERVALS'] = \
-            self.settings['INTERVALS_PER_DAY'] - self.settings['LOOK_AHEAD_INTS']
+    series['settings']['NUM_KEEP_INTERVALS'] = \
+        series['settings']['INTERVALS_PER_DAY'] - series['settings']['LOOK_AHEAD_INTS']
 
-        self.load_traces()
-        self.get_number_of_days()
-        self.trim_traces_to_integer_days()
-        self.add_last_look_ahead()
-        self.reset_trace_index_to_zero()
+    series['traces'] = load_traces(paths)
+    series['settings']['NUM_DAYS'] = get_number_of_days(series['traces'], series['settings'])
+    series['traces'] = trim_traces_to_integer_days(series['traces'], series['settings'])
+    series['traces'] = add_last_look_ahead(series['traces'], series['settings'])
+    series['traces'] = reset_trace_index_to_zero(series['traces'])
 
-    def load_traces(self):
-        trace_locations = ag.load_trace_locations(self.paths['inputs'])
-        self.traces = ag.load_deterministic_traces(trace_locations, self.paths['inputs'])
+    series['days_summary'] = cycle_days(series)
+    print_status_table(series['days_summary'])
 
-    def get_number_of_days(self):
-        import math
 
-        self.num_days = len(self.traces['demand']) / self.settings['NUM_KEEP_INTERVALS']
-        self.num_days = math.floor(self.num_days)
+def init_series(name):
+    series = dict()
+    series['name'] = name
 
-    def reset_trace_index_to_zero(self):
-        for trace_name, trace in self.traces.items():
-            self.traces[trace_name].index = list(range(len(trace)))
+    return series
 
-    def trim_traces_to_integer_days(self):
-        last_interval = self.num_days * self.settings['NUM_KEEP_INTERVALS']
-        for trace_name, trace in self.traces.items():
-            self.traces[trace_name] = trace.loc[0:last_interval]
 
-    def add_last_look_ahead(self):
-        for trace_name, trace in self.traces.items():
-            for i in range(self.settings['LOOK_AHEAD_INTS']):
-                new_row = dict()
-                one_day_earlier_row = \
-                    trace.iloc[len(trace) - i - 1].name
-                for col in trace.columns:
-                    new_row[col] = trace[col][one_day_earlier_row]
-                trace = trace.append(new_row, ignore_index=True)
-            self.traces[trace_name] = trace
+def init_paths(prob_path):
+    paths = denkiuc.denki_paths.dk_paths
+    paths['inputs'] = prob_path
+    paths['settings'] = os.path.join(paths['inputs'], 'settings.csv')
+    return paths
 
-    def cycle_days(self):
-        import pandas as pd
 
-        def get_days_intervals(d, num_keep_intervals, intervals_per_day):
-            first_interval = self.settings['NUM_KEEP_INTERVALS'] * d
-            last_interval = first_interval + self.settings['INTERVALS_PER_DAY']
-            days_intervals = list(range(first_interval, last_interval))
-            return days_intervals
+def complete_paths(paths, settings, name):
+    paths['outputs'] = os.path.join(settings['OUTPUTS_PATH'], name)
 
-        all_days = dict()
-        all_days_folder = os.path.join(self.paths['inputs'], 'days')
-        self.days_summary = pd.DataFrame(columns=['OptimalityStatus'])
+    return paths
 
-        for d in range(self.num_days):
-            days_intervals = \
-                get_days_intervals(d,
-                                   self.settings['NUM_KEEP_INTERVALS'],
-                                   self.settings['INTERVALS_PER_DAY']
-                                   )
 
-            days_traces = self.filter_days_traces(days_intervals)
+def load_traces(paths):
+    trace_locations = ag.load_trace_locations(paths['inputs'])
+    traces = ag.load_deterministic_traces(trace_locations, paths['inputs'])
 
-            day = denkiDay(d, days_traces, all_days_folder, self.paths['outputs'])
-            day.solve_day()
-            all_days['day' + str(d)] = day
-            self.days_summary = self.days_summary.append(pd.Series(day.days_status, name=day.name))
-        console.print("------------------------------------------------------")
-        console.print("\nAll days have been run\n\n", style='bold')
+    return traces
 
-    def filter_days_traces(self, days_intervals):
-        days_traces = dict()
 
-        for trace_name, trace in self.traces.items():
-            trace.index = trace.index.set_names(['Interval'])
-            days_traces[trace_name] = trace.loc[days_intervals, :]
+def get_number_of_days(traces, settings):
+    import math
 
-        return days_traces
+    num_days = len(traces['demand']) / settings['NUM_KEEP_INTERVALS']
+    num_days = math.floor(num_days)
 
-    def print_status_table(self):
-        from rich.table import Table
+    return num_days
 
-        all_days_table = Table(show_header=True, header_style='bold magenta')
 
-        all_days_table.add_column('Day')
-        for col in self.days_summary.columns:
-            all_days_table.add_column(col)
+def reset_trace_index_to_zero(traces):
+    for trace_name, trace in traces.items():
+        traces[trace_name].index = list(range(len(trace)))
 
-        for index, row_vals in enumerate(self.days_summary.values.tolist()):
-            row = [str(index)]
-            row += [str(x) for x in row_vals]
-            all_days_table.add_row(*row)
+    return traces
 
-        console.print("Summary information", style='bold')
-        console.print(all_days_table)
+
+def trim_traces_to_integer_days(traces, settings):
+    last_interval = settings['NUM_DAYS'] * settings['NUM_KEEP_INTERVALS']
+    for trace_name, trace in traces.items():
+        traces[trace_name] = trace.loc[0:last_interval]
+
+    return traces
+
+
+def add_last_look_ahead(traces, settings):
+    for trace_name, trace in traces.items():
+        for i in range(settings['LOOK_AHEAD_INTS']):
+            new_row = dict()
+            one_day_earlier_row = \
+                trace.iloc[len(trace) - i - 1].name
+            for col in trace.columns:
+                new_row[col] = trace[col][one_day_earlier_row]
+            trace = trace.append(new_row, ignore_index=True)
+        traces[trace_name] = trace
+
+    return traces
+
+
+def cycle_days(series):
+    import pandas as pd
+
+    settings, traces = mf.prob_unpacker(series, ['settings', 'traces'])
+
+    def get_days_intervals(d, num_keep_intervals, intervals_per_day):
+        first_interval = settings['NUM_KEEP_INTERVALS'] * d
+        last_interval = first_interval + settings['INTERVALS_PER_DAY']
+        days_intervals = list(range(first_interval, last_interval))
+        return days_intervals
+
+    all_days = dict()
+    all_days_folder = os.path.join(paths['inputs'], 'days')
+    days_summary = pd.DataFrame(columns=['OptimalityStatus'])
+
+    for d in range(settings['NUM_DAYS']):
+        days_intervals = \
+            get_days_intervals(d, settings['NUM_KEEP_INTERVALS'], settings['INTERVALS_PER_DAY'])
+
+        days_traces = filter_days_traces(days_intervals, traces)
+
+        day = denkiDay(d, days_traces, all_days_folder, paths['outputs'])
+        day.solve_day()
+        all_days['day' + str(d)] = day
+        days_summary = days_summary.append(pd.Series(day.days_status, name=day.name))
+
+    console.print("------------------------------------------------------")
+    console.print("\nAll days have been run\n\n", style='bold')
+
+    return days_summary
+
+
+def filter_days_traces(days_intervals, traces):
+    days_traces = dict()
+
+    for trace_name, trace in traces.items():
+        trace.index = trace.index.set_names(['Interval'])
+        days_traces[trace_name] = trace.loc[days_intervals, :]
+
+    return days_traces
+
+
+def print_status_table(days_summary):
+    from rich.table import Table
+
+    all_days_table = Table(show_header=True, header_style='bold magenta')
+
+    all_days_table.add_column('Day')
+    for col in days_summary.columns:
+        all_days_table.add_column(col)
+
+    for index, row_vals in enumerate(days_summary.values.tolist()):
+        row = [str(index)]
+        row += [str(x) for x in row_vals]
+        all_days_table.add_row(*row)
+
+    console.print("Summary information", style='bold')
+    console.print(all_days_table)
 
 
 class denkiDay():
@@ -155,14 +193,12 @@ class denkiDay():
             shutil.copyfile(src_path, dst_path)
 
     def solve_day(self):
-        day_model = uc.ucModel(self.name, self.input_path)
-        day_model.prepare_model()
-        day_model.run_model()
+        day_prob = uc.run_opt_problem(self.name, self.input_path)
 
         self.days_status = dict()
-        self.days_status['OptimalityStatus'] = day_model.optimality_status
-        self.days_status['ObjFnVal'] = day_model.opt_fn_value
-        self.days_status['SolverTime'] = day_model.solver_time
+        self.days_status['OptimalityStatus'] = day_prob['stats']['optimality_status']
+        self.days_status['ObjFnVal'] = day_prob['stats']['obj_fn_value']
+        self.days_status['SolverTime'] = day_prob['stats']['solver_time']
 
         time_end_day = time.perf_counter()
         self.days_status['TotalRunTime'] = time_end_day - self.time_start_day
@@ -172,6 +208,7 @@ class denkiDay():
 
 paths = denkiuc.denki_paths.dk_paths
 path_to_test_series = os.path.join(paths['denki_examples'], 'test_series')
-test_series = denkiSeries('test_series', path_to_test_series)
-test_series.cycle_days()
-test_series.print_status_table()
+run_series('test_series', path_to_test_series)
+# test_series = denkiSeries('test_series', path_to_test_series)
+# test_series.cycle_days()
+# test_series.print_status_table()

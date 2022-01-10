@@ -26,6 +26,8 @@ def run_opt_problem(name, prob_path):
     prob['mod'] = build_model(prob)
     prob['stats'] = run_model(prob)
 
+    return prob
+
 
 def init_prob(name):
     prob = dict()
@@ -136,7 +138,7 @@ def solve_model(mod, name):
 
     def print_stats(stats):
         print('Model status: %s' % stats['optimality_status'])
-        print('Objective function = %f' % stats['ob_fn_value'])
+        print('Objective function = %f' % stats['obj_fn_value'])
         print('Solve time = %.2f sec\n' % stats['solver_time'])
 
     time_start_solve = time.perf_counter()
@@ -149,7 +151,7 @@ def solve_model(mod, name):
     stats['solver_time'] = time_end_solve - time_start_solve
     stats['optimality_status'] = pp.LpStatus[mod.status]
     mf.exit_if_infeasible(stats['optimality_status'], name)
-    stats['ob_fn_value'] = mod.objective.value()
+    stats['obj_fn_value'] = mod.objective.value()
     print_stats(stats)
 
     return stats
