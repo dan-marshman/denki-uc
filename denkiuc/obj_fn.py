@@ -7,8 +7,8 @@ def build_obj_vom_term(prob):
 
     obj_vom_cost = \
         pp.lpSum(
-                 [vars['power_generated'].var[(i, s, u)] * data.units['VOM_$pMWh'][u]
-                  * data.probability_of_scenario[s]
+                 [vars['power_generated'].var[(i, s, u)] * data['units']['VOM_$pMWh'][u]
+                  * data['probability_of_scenario'][s]
                   for i in sets['intervals'].indices
                   for u in sets['units'].indices
                   for s in sets['scenarios'].indices]
@@ -25,8 +25,8 @@ def build_obj_fuel_term(prob):
     obj_fuel_cost = \
         pp.lpSum(
                  [vars['power_generated'].var[(i, s, u)]
-                  * 3.6 * data.units['FuelCost_$pGJ'][u] / data.units['ThermalEfficiency'][u]
-                  * data.probability_of_scenario[s]
+                  * 3.6 * data['units']['FuelCost_$pGJ'][u] / data['units']['ThermalEfficiency'][u]
+                  * data['probability_of_scenario'][s]
                   for i in sets['intervals'].indices
                   for u in sets['units_commit'].indices
                   for s in sets['scenarios'].indices]
@@ -42,7 +42,7 @@ def build_obj_start_cost_term(prob):
 
     obj_start_up_cost = \
         pp.lpSum(
-                 [vars['num_starting_up'].var[(i, s, u)] * data.units['StartCost_$'][u]
+                 [vars['num_starting_up'].var[(i, s, u)] * data['units']['StartCost_$'][u]
                   for i in sets['intervals'].indices
                   for s in sets['scenarios'].indices
                   for u in sets['units_commit'].indices]
@@ -57,7 +57,7 @@ def build_obj_rec_value_term(prob):
     obj_rec_value = \
         pp.lpSum(
                  [vars['power_generated'].var[(i, s, u)] * settings['REC_PRICE']
-                  * data.probability_of_scenario[s]
+                  * data['probability_of_scenario'][s]
                   for i in sets['intervals'].indices
                   for u in sets['units_renewable'].indices
                   for s in sets['scenarios'].indices]
@@ -75,9 +75,9 @@ def build_obj_carbon_price_term(prob):
         pp.lpSum(
                  [vars['power_generated'].var[(i, s, u)]
                   * settings['CARBON_PRICE']
-                  * data.probability_of_scenario[s]
-                  * 3.6 * data.units['Emissions_tonneCO2epGJ'][u]
-                  / data.units['ThermalEfficiency'][u]
+                  * data['probability_of_scenario'][s]
+                  * 3.6 * data['units']['Emissions_tonneCO2epGJ'][u]
+                  / data['units']['ThermalEfficiency'][u]
                   for i in sets['intervals'].indices
                   for u in sets['units_thermal'].indices
                   for s in sets['scenarios'].indices]
@@ -94,14 +94,14 @@ def unserved_obj_fn_terms(prob):
     obj_uns_power = \
         pp.lpSum(
                  [settings['UNS_LOAD_PNTY'] * vars['unserved_power'].var[(i, s)]
-                  * data.probability_of_scenario[s]
+                  * data['probability_of_scenario'][s]
                   for i in sets['intervals'].indices for s in sets['scenarios'].indices]
                 )
 
     obj_uns_reserve = \
         pp.lpSum(
                  [settings['UNS_RESERVE_PNTY'] * vars['unserved_reserve'].var[(i, s, r)]
-                  * data.probability_of_scenario[s]
+                  * data['probability_of_scenario'][s]
                   for i in sets['intervals'].indices
                   for s in sets['scenarios'].indices
                   for r in sets['reserves'].indices]

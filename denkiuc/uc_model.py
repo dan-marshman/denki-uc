@@ -19,7 +19,7 @@ def run_opt_problem(name, prob_path):
 
     prob['data'] = ld.load_data(prob['paths'], prob['settings'])
     prob['sets'], prob['data'], prob['m_sets'] = \
-        arrange_sets_and_data(prob['data'], prob['settings'])
+        arrange_sets_and_data(prob['data'], prob['settings'], prob['paths'])
 
     prob['vars'] = add_variables(prob['m_sets'])
 
@@ -46,24 +46,25 @@ def complete_paths(paths, settings, name):
     paths['final_state'] = os.path.join(paths['results'], 'final_state.db')
     paths['LA_results_db'] = os.path.join(paths['results'], 'LA_results.db')
     paths['TR_results_db'] = os.path.join(paths['results'], 'LA_trimmed_results.db')
+    paths['arma_out_dir'] = os.path.join(paths['inputs'], 'arma_traces')
 
     return paths
 
 
-def arrange_sets_and_data(data, settings):
+def arrange_sets_and_data(data, settings, paths):
     sets = ld.load_master_sets(data, settings)
-    sets = ld.load_unit_subsets(data, sets)
+    sets = ld.load_unit_subsets(data, sets, paths)
     sets = ld.add_reserve_subsets(sets)
     sets = ld.load_interval_subsets(settings, sets)
     m_sets = ld.make_multi_sets(sets)
 
-    data.probability_of_scenario = ld.define_scenario_probability(sets['scenarios'])
+    data['probability_of_scenario'] = ld.define_scenario_probability(sets['scenarios'])
 
-    if not data.missing_values['initial_state']:
-        data.validate_initial_state_data(sets)
+    if not data['missing_values']['initial_state']:
+        data = ld.validate_initial_state_data(data, sets)
 
-    data.add_default_values(sets)
-    data.replace_reserve_requirement_index()
+    data = ld.add_default_values(data, sets)
+    data = ld.replace_reserve_requirement_index(data)
 
     print("\nParameters and sets are ready")
 

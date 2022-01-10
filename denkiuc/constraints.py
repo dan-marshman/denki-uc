@@ -15,9 +15,9 @@ def cnt_supply_eq_demand(prob):
                            for u in sets['units'].indices])
                  + vars['unserved_power'].var[(i, s)]
                  ==
-                 data.traces['demand'][s][i]
+                 data['traces']['demand'][s][i]
                  + pp.lpSum([vars['charge_after_losses'].var[(i, s, u)]
-                             * (1 / data.units['RTEfficiency'][u])
+                             * (1 / data['units']['RTEfficiency'][u])
                              for u in sets['units_storage'].indices])
                  )
 
@@ -38,7 +38,7 @@ def cnt_meet_reserve_requirement(prob):
                                for u in sets['units'].indices])
                      + vars['unserved_reserve'].var[(i, s, r)]
                      >=
-                     data.reserve_requirement[r][i]
+                     data['as_reqt'][r][i]
                      )
 
                 mod += condition, label
@@ -50,8 +50,8 @@ def cnt_variable_resource_availability(prob):
     sets, data, vars, mod = mf.prob_unpacker(prob, ['sets', 'data', 'vars', 'mod'])
 
     for u in sets['units_variable'].indices:
-        region = data.units['Region'][u]
-        technology = data.units['Technology'][u]
+        region = data['units']['Region'][u]
+        technology = data['units']['Technology'][u]
 
         for s in sets['scenarios'].indices:
             trace = mf.get_resource_trace(s, region, technology, data)
@@ -61,7 +61,7 @@ def cnt_variable_resource_availability(prob):
                 condition = \
                     (
                      vars['power_generated'].var[(i, s, u)]
-                     <= trace[i] * data.units['Capacity_MW'][u]
+                     <= trace[i] * data['units']['Capacity_MW'][u]
                     )
 
                 mod += condition, label
@@ -83,7 +83,7 @@ def cnt_commitment_continuity(prob):
                         (
                          vars['num_committed'].var[(i, s, u)]
                          ==
-                         data.initial_state['NumCommited'][u]
+                         data['initial_state']['NumCommited'][u]
                          + vars['num_starting_up'].var[(i, s, u)]
                          - vars['num_shutting_down'].var[(i, s, u)]
                          )
@@ -137,7 +137,7 @@ def cnt_max_units_committed(prob):
                 condition = \
                     (vars['num_committed'].var[(i, s, u)]
                      <=
-                     data.units['NoUnits'][u])
+                     data['units']['NoUnits'][u])
 
                 mod += condition, label
 
@@ -157,7 +157,7 @@ def cnt_power_lt_committed_capacity(prob):
                      + pp.lpSum(vars['reserve_enabled'].var[(i, s, u, r)]
                                 for r in sets['raise_reserves'].indices)
                      <=
-                     vars['num_committed'].var[(i, s, u)] * data.units['Capacity_MW'][u])
+                     vars['num_committed'].var[(i, s, u)] * data['units']['Capacity_MW'][u])
 
                 mod += condition, label
 
@@ -178,8 +178,8 @@ def cnt_power_gt_min_stable_gen(prob):
                                 for r in sets['lower_reserves'].indices)
                      >=
                      vars['num_committed'].var[(i, s, u)]
-                     * data.units['Capacity_MW'][u]
-                     * data.units['MinGen_pctCap'][u])
+                     * data['units']['Capacity_MW'][u]
+                     * data['units']['MinGen_pctCap'][u])
 
                 mod += condition, label
     return mod
@@ -198,7 +198,7 @@ def cnt_power_lt_capacity(prob):
                      + pp.lpSum(vars['reserve_enabled'].var[(i, s, u, r)]
                                 for r in sets['raise_reserves'].indices)
                      <=
-                     data.units['Capacity_MW'][u] * data.units['NoUnits'][u]
+                     data['units']['Capacity_MW'][u] * data['units']['NoUnits'][u]
                      )
 
                 mod += condition, label
@@ -215,7 +215,7 @@ def cnt_minimum_up_time(prob):
         i_high = i + 1
 
         for u in sets['units_commit'].indices:
-            unit_up_time = data.units['MinUpTime_h'][u]
+            unit_up_time = data['units']['MinUpTime_h'][u]
             i_low = 1 + max(i0 - 1, i - settings['INTERVALS_PER_HOUR'] * unit_up_time)
 
             for s in sets['scenarios'].indices:
@@ -243,7 +243,7 @@ def cnt_minimum_down_time(prob):
         i_high = i + 1
 
         for u in sets['units_commit'].indices:
-            unit_down_time = data.units['MinDownTime_h'][u]
+            unit_down_time = data['units']['MinDownTime_h'][u]
             if i - i0 <= unit_down_time:
                 pass
 
@@ -251,7 +251,7 @@ def cnt_minimum_down_time(prob):
             for s in sets['scenarios'].indices:
                 label = 'minimum_down_time_i_%d_u_%s_s_%d' % (i, u, s)
                 condition = (
-                    data.units['NoUnits'][u] - vars['num_committed'].var[(i, s, u)]
+                    data['units']['NoUnits'][u] - vars['num_committed'].var[(i, s, u)]
                     >=
                     pp.lpSum([vars['num_shutting_down'].var[(i2, s, u)]
                               for i2 in range(i_low, i_high)])
@@ -293,9 +293,9 @@ def cnt_storage_continuity_first_int(prob):
         for u in sets['units_storage'].indices:
             i = min(sets['intervals'].indices)
             initial_energy_in_reservoir \
-                = (data.initial_state['StorageLevel_frac'][u]
-                   * data.units['StorageCap_h'][u]
-                   * data.units['Capacity_MW'][u])
+                = (data['initial_state']['StorageLevel_frac'][u]
+                   * data['units']['StorageCap_h'][u]
+                   * data['units']['Capacity_MW'][u])
             label = 'storage_continuity_%s_int_%d_s%d' % (u, i, s)
             condition = \
                 (vars['energy_in_reservoir'].var[(i, s, u)]
@@ -320,7 +320,7 @@ def cnt_max_stored_energy(prob):
                     (
                      vars['energy_in_reservoir'].var[(i, s, u)]
                      <=
-                     data.units['StorageCap_h'][u] * data.units['Capacity_MW'][u]
+                     data['units']['StorageCap_h'][u] * data['units']['Capacity_MW'][u]
                     )
 
                 mod += condition, label
@@ -337,8 +337,8 @@ def cnt_max_charge(prob):
                 condition = \
                     (vars['charge_after_losses'].var[(i, s, u)]
                      <=
-                     data.units['RTEfficiency'][u]
-                     * data.units['Capacity_MW'][u])
+                     data['units']['RTEfficiency'][u]
+                     * data['units']['Capacity_MW'][u])
                 mod += condition, label
 
     return mod
@@ -350,7 +350,7 @@ def cnt_maximum_reserve_enablement(prob):
     for u in sets['units'].indices:
         if u in sets['units_commit'].indices:
             for r in sets['reserves'].indices:
-                max_reserves_per_unit = mf.get_max_reserves_per_unit(u, r, data.units)
+                max_reserves_per_unit = mf.get_max_reserves_per_unit(u, r, data['units'])
 
                 for i in sets['intervals'].indices:
                     for s in sets['scenarios'].indices:
@@ -364,7 +364,7 @@ def cnt_maximum_reserve_enablement(prob):
 
         else:
             for r in sets['reserves'].indices:
-                max_reserves_per_unit = mf.get_max_reserves_per_unit(u, r, data.units)
+                max_reserves_per_unit = mf.get_max_reserves_per_unit(u, r, data['units'])
 
                 for i in sets['intervals'].indices:
                     for s in sets['scenarios'].indices:
@@ -372,7 +372,7 @@ def cnt_maximum_reserve_enablement(prob):
                         condition = (
                             vars['reserve_enabled'].var[(i, s, u, r)]
                             <=
-                            data.units['NoUnits'][u] * max_reserves_per_unit
+                            data['units']['NoUnits'][u] * max_reserves_per_unit
                             )
 
                         mod += condition, label
@@ -398,8 +398,8 @@ def cnt_limit_rocof(prob):
         for s in sets['scenarios'].indices:
             system_inertia = \
                 pp.lpSum(vars['num_committed'].var[(i, s, u2)]
-                         * data.units['InertialConst_s'][u2]
-                         * data.units['Capacity_MW'][u2]
+                         * data['units']['InertialConst_s'][u2]
+                         * data['units']['Capacity_MW'][u2]
                          for u2 in sets['units_commit'].indices)
 
             for u in sets['units'].indices:
@@ -408,22 +408,22 @@ def cnt_limit_rocof(prob):
                 if u in sets['units_commit'].indices:
                     units_inertia = \
                         vars['num_committed'].var[(i, s, u)] \
-                        * data.units['InertialConst_s'][u] \
-                        * data.units['Capacity_MW'][u]
+                        * data['units']['InertialConst_s'][u] \
+                        * data['units']['Capacity_MW'][u]
 
                     contingency_size = \
-                        vars['is_committed'].var[(i, s, u)] * data.units['Capacity_MW'][u]
+                        vars['is_committed'].var[(i, s, u)] * data['units']['Capacity_MW'][u]
 
                 elif u in sets['units_variable'].indices:
                     units_inertia = 0
-                    technology = data.units['Technology'][u]
-                    region = data.units['Region'][u]
+                    technology = data['units']['Technology'][u]
+                    region = data['units']['Region'][u]
                     trace = mf.get_resource_trace(s, region, technology, data)
-                    contingency_size = trace[i] * data.units['Capacity_MW'][u]
+                    contingency_size = trace[i] * data['units']['Capacity_MW'][u]
 
                 elif u in sets['units_storage'].indices:
                     units_inertia = 0
-                    contingency_size = data.units['Capacity_MW'][u]
+                    contingency_size = data['units']['Capacity_MW'][u]
 
                 available_inertia = system_inertia - units_inertia
 
@@ -446,7 +446,7 @@ def cnt_define_is_committed(prob):
                     (
                      vars['num_committed'].var[(i, s, u)]
                      <=
-                     vars['is_committed'].var[(i, s, u)] * data.units['NoUnits'][u]
+                     vars['is_committed'].var[(i, s, u)] * data['units']['NoUnits'][u]
                     )
 
                 mod += condition, label
@@ -466,7 +466,7 @@ def cnt_ramp_rate_up(prob):
                 if i == sets['intervals'].indices[0]:
                     ramp = \
                         vars['power_generated'].var[(i, s, u)] \
-                        - data.initial_state['PowerGeneration_MW'][u]
+                        - data['initial_state']['PowerGeneration_MW'][u]
                 else:
                     ramp = \
                         vars['power_generated'].var[(i, s, u)] \
@@ -474,15 +474,16 @@ def cnt_ramp_rate_up(prob):
 
                 committed_ramp_capacity = \
                     vars['num_committed'].var[(i, s, u)] \
-                    * data.units['RampRateUp_pctCapphr'][u] \
-                    * data.units['Capacity_MW'][u] \
+                    * data['units']['RampRateUp_pctCapphr'][u] \
+                    * data['units']['Capacity_MW'][u] \
                     / settings['INTERVALS_PER_HOUR']
 
                 start_up_ramp_capacity = \
                     vars['num_starting_up'].var[(i, s, u)] \
-                    * max(data.units['RampRateUp_pctCapphr'][u] / settings['INTERVALS_PER_HOUR'],
-                          data.units['MinGen_pctCap'][u]) \
-                    * data.units['Capacity_MW'][u]
+                    * max(data['units']['RampRateUp_pctCapphr'][u]
+                          / settings['INTERVALS_PER_HOUR'],
+                          data['units']['MinGen_pctCap'][u]) \
+                    * data['units']['Capacity_MW'][u]
 
                 condition = ramp <= committed_ramp_capacity + start_up_ramp_capacity
 
@@ -502,7 +503,7 @@ def cnt_ramp_rate_down(prob):
 
                 if i == sets['intervals'].indices[0]:
                     ramp = \
-                        data.initial_state['PowerGeneration_MW'][u] \
+                        data['initial_state']['PowerGeneration_MW'][u] \
                         - vars['power_generated'].var[(i, s, u)]
                 else:
                     ramp = \
@@ -511,15 +512,16 @@ def cnt_ramp_rate_down(prob):
 
                 committed_ramp_capacity = \
                     vars['num_committed'].var[(i, s, u)] \
-                    * data.units['RampRateUp_pctCapphr'][u] \
-                    * data.units['Capacity_MW'][u] \
+                    * data['units']['RampRateUp_pctCapphr'][u] \
+                    * data['units']['Capacity_MW'][u] \
                     / settings['INTERVALS_PER_HOUR']
 
                 shut_down_ramp_capacity = \
                     vars['num_shutting_down'].var[(i, s, u)] \
-                    * max(data.units['RampRateDown_pctCapphr'][u] / settings['INTERVALS_PER_HOUR'],
-                          data.units['MinGen_pctCap'][u]) \
-                    * data.units['Capacity_MW'][u]
+                    * max(data['units']['RampRateDown_pctCapphr'][u]
+                          / settings['INTERVALS_PER_HOUR'],
+                          data['units']['MinGen_pctCap'][u]) \
+                    * data['units']['Capacity_MW'][u]
 
                 condition = ramp <= committed_ramp_capacity + shut_down_ramp_capacity
 
@@ -539,45 +541,45 @@ def create_cnts_df(path_to_inputs):
 
 
 def add_basic_constraints(prob):
-    prob['mod'] = cnt_supply_eq_demand(attr)
-    prob['mod'] = cnt_meet_reserve_requirement(attr)
-    prob['mod'] = cnt_power_lt_capacity(attr)
-    prob['mod'] = cnt_variable_resource_availability(attr)
-    prob['mod'] = cnt_maximum_reserve_enablement(attr)
+    prob['mod'] = cnt_supply_eq_demand(prob)
+    prob['mod'] = cnt_meet_reserve_requirement(prob)
+    prob['mod'] = cnt_power_lt_capacity(prob)
+    prob['mod'] = cnt_variable_resource_availability(prob)
+    prob['mod'] = cnt_maximum_reserve_enablement(prob)
 
     return prob
 
 
 def add_uc_constraints(prob):
-    prob['mod'] = cnt_commitment_continuity(attr)
-    prob['mod'] = cnt_max_units_committed(attr)
-    prob['mod'] = cnt_power_lt_committed_capacity(attr)
-    prob['mod'] = cnt_power_gt_min_stable_gen(attr)
-    prob['mod'] = cnt_minimum_up_time(attr)
-    prob['mod'] = cnt_minimum_down_time(attr)
-    prob['mod'] = cnt_limit_rocof(attr)
-    prob['mod'] = cnt_define_is_committed(attr)
-    prob['mod'] = cnt_ramp_rate_up(attr)
-    prob['mod'] = cnt_ramp_rate_down(attr)
+    prob['mod'] = cnt_commitment_continuity(prob)
+    prob['mod'] = cnt_max_units_committed(prob)
+    prob['mod'] = cnt_power_lt_committed_capacity(prob)
+    prob['mod'] = cnt_power_gt_min_stable_gen(prob)
+    prob['mod'] = cnt_minimum_up_time(prob)
+    prob['mod'] = cnt_minimum_down_time(prob)
+    prob['mod'] = cnt_limit_rocof(prob)
+    prob['mod'] = cnt_define_is_committed(prob)
+    prob['mod'] = cnt_ramp_rate_up(prob)
+    prob['mod'] = cnt_ramp_rate_down(prob)
 
     return prob
 
 
 def add_storage_constraints(prob):
-    prob['mod'] = cnt_storage_continuity(attr)
-    prob['mod'] = cnt_storage_continuity_first_int(attr)
-    prob['mod'] = cnt_max_stored_energy(attr)
-    prob['mod'] = cnt_max_charge(attr)
+    prob['mod'] = cnt_storage_continuity(prob)
+    prob['mod'] = cnt_storage_continuity_first_int(prob)
+    prob['mod'] = cnt_max_stored_energy(prob)
+    prob['mod'] = cnt_max_charge(prob)
 
     return prob
 
 
 def add_constraints_to_model(prob):
-    prob = add_basic_constraints(attr)
-    prob = add_storage_constraints(attr)
+    prob = add_basic_constraints(prob)
+    prob = add_storage_constraints(prob)
 
     if prob['settings']['INCL_UNIT_COMMITMENT']:
-        prob = add_uc_constraints(attr)
+        prob = add_uc_constraints(prob)
 
     return prob
 

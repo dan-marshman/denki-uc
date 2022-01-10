@@ -61,26 +61,26 @@ class dkSet():
 def load_master_sets(data, settings):
     sets = dict()
 
-    sets['intervals'] = dkSet('intervals', data.traces['demand'].index.to_list())
-    sets['units'] = dkSet('units', data.units.index.to_list())
+    sets['intervals'] = dkSet('intervals', data['traces']['demand'].index.to_list())
+    sets['units'] = dkSet('units', data['units'].index.to_list())
     sets['scenarios'] = dkSet('scenarios', list(range(settings['NUM_SCENARIOS'])))
 
     all_reserve_indices = \
         pd.read_csv(os.path.join(default_files_path, 'all_reserve_indices.csv'))
     reserve_indices = \
-        [r for r in all_reserve_indices['ReserveType'] if r in data.reserve_requirement.columns]
+        [r for r in all_reserve_indices['ReserveType'] if r in data['as_reqt'].columns]
 
     sets['reserves'] = dkSet('reserves', reserve_indices)
 
     return sets
 
 
-def load_unit_subsets(data, sets):
-    units_commit = create_unit_subsets('Commit', data, sets['units'])
-    units_storage = create_unit_subsets('Storage', data, sets['units'])
-    units_variable = create_unit_subsets('Variable', data, sets['units'])
-    units_renewable = create_unit_subsets('Renewable', data, sets['units'])
-    units_thermal = create_unit_subsets('Thermal', data, sets['units'])
+def load_unit_subsets(data, sets, paths):
+    units_commit = create_unit_subsets('Commit', data, sets['units'], paths)
+    units_storage = create_unit_subsets('Storage', data, sets['units'], paths)
+    units_variable = create_unit_subsets('Variable', data, sets['units'], paths)
+    units_renewable = create_unit_subsets('Renewable', data, sets['units'], paths)
+    units_thermal = create_unit_subsets('Thermal', data, sets['units'], paths)
 
     sets['units_commit'] = dkSet('units_commit', units_commit, sets['units'])
     sets['units_storage'] = dkSet('units_storage', units_storage, sets['units'])
@@ -88,8 +88,8 @@ def load_unit_subsets(data, sets):
     sets['units_renewable'] = dkSet('units_renewable', units_renewable, sets['units'])
     sets['units_thermal'] = dkSet('units_thermal', units_thermal, sets['units'])
 
-    units_inflex = create_unit_subsets('Inflexible', data, sets['units_commit'])
-    units_flex = create_unit_subsets('Flexible', data, sets['units_commit'])
+    units_inflex = create_unit_subsets('Inflexible', data, sets['units_commit'], paths)
+    units_flex = create_unit_subsets('Flexible', data, sets['units_commit'], paths)
 
     sets['units_inflex'] = dkSet('units_inflex', units_inflex, sets['units_commit'])
     sets['units_flex'] = dkSet('units_flex', units_flex, sets['units_commit'])
@@ -144,13 +144,13 @@ def make_multi_sets(sets):
     return m_sets
 
 
-def create_unit_subsets(subset, data, units):
+def create_unit_subsets(subset, data, units, paths):
     def read_tech_categories_file():
         filename = 'technology_categories.csv'
-        data.paths['tech_cat_file'] = os.path.join(data.paths['inputs'], filename)
+        paths['tech_cat_file'] = os.path.join(paths['inputs'], filename)
 
-        if os.path.exists(data.paths['tech_cat_file']):
-            tech_categories_df = pd.read_csv(data.paths['tech_cat_file'], index_col=0)
+        if os.path.exists(paths['tech_cat_file']):
+            tech_categories_df = pd.read_csv(paths['tech_cat_file'], index_col=0)
         else:
             tech_categories_df = mf.load_default_file(filename)
 
@@ -160,7 +160,7 @@ def create_unit_subsets(subset, data, units):
         subset_indices = []
 
         for u in units.indices:
-            unit_tech = data.units['Technology'][u]
+            unit_tech = data['units']['Technology'][u]
             if tech_categories_df[subset][unit_tech] == 1:
                 subset_indices.append(u)
 
@@ -183,7 +183,7 @@ def load_data(paths, settings):
     data = dict()
     missing_values = dict()
 
-    data['traces'], paths = load_stochastic_traces(paths, settings)
+    data['traces'] = load_stochastic_traces(paths, settings)
     data['as_reqt'], missing_values = load_ancillary_service_requirements(paths, missing_values)
     data['units'] = load_unit_data(paths)
     data['initial_state'], missing_values = load_initial_state(paths, missing_values)
@@ -198,10 +198,9 @@ def load_stochastic_traces(paths, settings):
     import sqlite3
 
     traces = dict()
-    paths['arma_out_dir'] = os.path.join(paths['inputs'], 'arma_traces')
     mf.make_folder(paths['arma_out_dir'])
 
-    def check_if_new_arma_db_needed():
+    def generate_new_arma_db_if_needed(paths, settings):
         arma_dbs = os.listdir(paths['arma_out_dir'])
 
         if len(arma_dbs) == 0:
@@ -212,23 +211,29 @@ def load_stochastic_traces(paths, settings):
         if settings['NUM_SCENARIOS'] > max_scenario_db:
             ag.run_arma_model(paths['inputs'], settings['NUM_SCENARIOS'], settings['RANDOM_SEED'])
 
-    def find_arma_db():
+    def find_arma_db(paths, settings):
         for db_file in os.listdir(paths['arma_out_dir']):
             if int(db_file[0:3]) >= settings['NUM_SCENARIOS']:
                 return db_file
 
-    check_if_new_arma_db_needed()
-    db_file = find_arma_db()
-    arma_db_path = os.path.join(paths['arma_out_dir'], db_file)
+    def load_traces_from_db_file(paths, db_file):
+        arma_db_path = os.path.join(paths['arma_out_dir'], db_file)
+        db_connection = sqlite3.connect(arma_db_path)
 
-    db_connection = sqlite3.connect(arma_db_path)
-    for trace_name in ['wind', 'solarPV', 'demand']:
-        query = 'select * from %s' % trace_name
-        traces[trace_name] = pd.read_sql_query(query, db_connection, index_col='Interval')
-        traces[trace_name].columns = traces[trace_name].columns.map(int)
-    db_connection.close()
+        for trace_name in ['wind', 'solarPV', 'demand']:
+            query = 'select * from %s' % trace_name
+            traces[trace_name] = pd.read_sql_query(query, db_connection, index_col='Interval')
+            traces[trace_name].columns = traces[trace_name].columns.map(int)
 
-    return traces, paths
+        db_connection.close()
+
+        return traces
+
+    generate_new_arma_db_if_needed(paths, settings)
+    db_file = find_arma_db(paths, settings)
+    traces = load_traces_from_db_file(paths, db_file)
+
+    return traces
 
 
 def load_ancillary_service_requirements(paths, missing_values):
@@ -236,12 +241,12 @@ def load_ancillary_service_requirements(paths, missing_values):
 
     if os.path.exists(reserve_requirement_path):
         reserve_requirement = pd.read_csv(reserve_requirement_path, index_col=0)
-        missing_values['reserve_requirement'] = False
+        missing_values['as_reqt'] = False
 
     else:
         print("Looking for reserve_requirement - doesn't exist", reserve_requirement_path)
         reserve_requirement = False
-        missing_values['reserve_requirement'] = True
+        missing_values['as_reqt'] = True
 
     return reserve_requirement, missing_values
 
@@ -265,42 +270,42 @@ def load_initial_state(paths, missing_values):
         missing_values['initial_state'] = False
     else:
         print("Looking for initial state file - doesn't exist", initial_state_path)
-        missing_values['initial_state'] = True
         initial_state = False
+        missing_values['initial_state'] = True
 
-        return initial_state, missing_values
+    return initial_state, missing_values
 
 
-def validate_initial_state_data(self, sets):
+def validate_initial_state_data(data, sets):
     for u in sets['units_commit'].indices:
-        commit_val = self.initial_state['NumCommited'][u]
-        units_built_val = self.units['NoUnits'][u]
+        commit_val = data['initial_state']['NumCommited'][u]
+        units_built_val = data['units']['NoUnits'][u]
 
         if commit_val != int(commit_val):
             logging.error("Initial state had commit value of %f for unit %s" % (commit_val, u),
                           " - changed to %d" % int(commit_val))
-            self.initial_state.loc[u, 'NumCommited'] = int(commit_val)
+            data['initial_state'].loc[u, 'NumCommited'] = int(commit_val)
 
         if commit_val > units_built_val:
             logging.error('Initial state had more units committed (%f) for unit' % commit_val,
                           ' %s than exist (%d).' % (u, units_built_val),
                           ' Changed to %d.' % units_built_val)
-            self.initial_state.loc[u, 'NumCommited'] = units_built_val
+            data['initial_state'].loc[u, 'NumCommited'] = units_built_val
 
         if commit_val < 0:
             logging.error('initial state had commit value of',
                           '%f for unit %s.' % (commit_val, u),
                           'Changed to 0.')
-            self.initial_state.loc[u, 'NumCommited'] = 0
+            data['initial_state'].loc[u, 'NumCommited'] = 0
 
-        initial_power_MW = self.initial_state['PowerGeneration_MW'][u]
+        initial_power_MW = data['initial_state']['PowerGeneration_MW'][u]
 
         minimum_initial_power_MW = \
-            self.initial_state['NumCommited'][u] \
-            * self.units['MinGen_pctCap'][u] * self.units['Capacity_MW'][u]
+            data['initial_state']['NumCommited'][u] \
+            * data['units']['MinGen_pctCap'][u] * data['units']['Capacity_MW'][u]
 
         maximum_initial_power_MW = \
-            self.initial_state['NumCommited'][u] * self.units['Capacity_MW'][u]
+            data['initial_state']['NumCommited'][u] * data['units']['Capacity_MW'][u]
 
         if initial_power_MW < minimum_initial_power_MW:
             print('Unit %s has its initial power < minimum generation based on commitment' % u)
@@ -309,17 +314,23 @@ def validate_initial_state_data(self, sets):
             print('Unit %s has initial power > maximum generation based on commitment' % u)
 
     for u in sets['units_storage'].indices:
-        if self.initial_state['StorageLevel_frac'][u] > 1:
+        if data['initial_state']['StorageLevel_frac'][u] > 1:
             print('Unit %s has initial storage fraction greater than 1' % u)
             exit()
 
+    return data
 
-def add_default_values(self, sets):
-    if self.missing_values['reserve_requirement']:
-        self.reserve_requirement = \
+
+def add_default_values(data, sets):
+    if data['missing_values']['as_reqt']:
+        data['as_reqt'] = \
             pd.DataFrame(0, index=sets['intervals'].indices, columns=sets['reserves'])
 
+    return data
 
-def replace_reserve_requirement_index(self):
-    first_trace = list(self.traces.keys())[0]
-    self.reserve_requirement.index = self.traces[first_trace].index
+
+def replace_reserve_requirement_index(data):
+    first_trace = list(data['traces'].keys())[0]
+    data['as_reqt'].index = data['traces'][first_trace].index
+
+    return data

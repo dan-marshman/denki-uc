@@ -31,7 +31,7 @@ def add_charge_losses(data, results):
 
     for col in charge_losses.columns.to_list():
         u = col[1]
-        rt_eff = data.units['RTEfficiency'][u]
+        rt_eff = data['units']['RTEfficiency'][u]
         charge_losses[col] = charge_losses[col] * (1 - rt_eff) / rt_eff
 
     return charge_losses
@@ -50,7 +50,7 @@ def add_inertia_dispatch(data, results):
             u = col[1]
             inertia_dispatch.loc[i, col] = \
                 inertia_dispatch.loc[i, col] \
-                * data.units['InertialConst_s'][u] * data.units['Capacity_MW'][u]
+                * data['units']['InertialConst_s'][u] * data['units']['Capacity_MW'][u]
 
     scenarios = set([c[0] for c in inertia_dispatch.columns])
     for s in scenarios:
@@ -79,7 +79,8 @@ def add_maximum_rocof(data, new_results, settings):
                 units_inertia = new_results['inertia_dispatch'][(s, u)][i]
                 available_inertia = system_inertia - units_inertia
                 contingency_size = \
-                    new_results['inertia_dispatch'][(s, u)][i] / data.units['InertialConst_s'][u]
+                    new_results['inertia_dispatch'][(s, u)][i] \
+                    / data['units']['InertialConst_s'][u]
 
                 rocof_in_units_failure = \
                     contingency_size * settings['SYSTEM_FREQUENCY'] / (2 * available_inertia)
@@ -108,7 +109,7 @@ def add_dispatch_result(data, results, new_results):
 
     dispatch = add_level_and_join(dispatch, -1 * results['charge_after_losses'], 'charge')
     dispatch = add_level_and_join(dispatch, -1 * new_results['charge_losses'], 'losses')
-    dispatch = add_level_and_join(dispatch, -1 * data.traces['demand'], 'demand')
+    dispatch = add_level_and_join(dispatch, -1 * data['traces']['demand'], 'demand')
 
     unserved_df = results['unserved_power'].copy()
     unserved_df.columns = pd.MultiIndex.from_product([unserved_df.columns, ['Demand']])
@@ -131,12 +132,12 @@ def add_final_state(data, vars, sets, paths):
     for u in sets['units_storage'].indices:
         final_state['storage_fraction'].loc[u] = \
             vars['energy_in_reservoir'].result_df[(first_scenario, u)][final_interval] \
-            / (data.units['Capacity_MW'][u] * data.units['StorageCap_h'][u])
+            / (data['units']['Capacity_MW'][u] * data['units']['StorageCap_h'][u])
     return final_state
 
 
 def add_traces_to_new_results(data, new_results):
-    for trace_name, trace in data.traces.items():
+    for trace_name, trace in data['traces'].items():
         new_results[trace_name] = trace
 
     return new_results
