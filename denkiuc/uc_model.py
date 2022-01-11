@@ -4,7 +4,6 @@ import denkiuc.misc_functions as mf
 import denkiuc.variables as va
 import os
 import pulp as pp
-import sys
 
 
 def run_opt_problem(name, prob_path):
@@ -32,6 +31,7 @@ def run_opt_problem(name, prob_path):
 def init_prob(name):
     prob = dict()
     prob['name'] = name
+
     return prob
 
 
@@ -47,7 +47,7 @@ def complete_paths(paths, settings, name):
     paths['results'] = os.path.join(paths['outputs'], 'results')
     paths['final_state'] = os.path.join(paths['results'], 'final_state.db')
     paths['LA_results_db'] = os.path.join(paths['results'], 'LA_results.db')
-    paths['TR_results_db'] = os.path.join(paths['results'], 'LA_trimmed_results.db')
+    paths['TR_results_db'] = os.path.join(paths['results'], 'TR_results.db')
     paths['arma_out_dir'] = os.path.join(paths['inputs'], 'arma_traces')
 
     return paths
@@ -78,11 +78,11 @@ def add_variables(m_sets):
 
     vars['power_generated'] = va.dkVar('power_generated', 'MW', m_sets['in_sc_un'])
 
-    vars['num_committed'] = va.dkVar('num_committed', 'NumUnits', m_sets['in_sc_unco'], 'I')
+    vars['num_committed'] = va.dkVar('num_committed', '#Units', m_sets['in_sc_unco'], 'I')
     vars['inertia_provided'] = va.dkVar('inertia_provided', 'MW.s', m_sets['in_sc_unco'])
     vars['is_committed'] = va.dkVar('is_committed', 'Binary', m_sets['in_sc_unco'], 'B')
-    vars['num_shutting_down'] = va.dkVar('num_shutting_down', 'NumUnits', m_sets['in_sc_unco'], 'I')
-    vars['num_starting_up'] = va.dkVar('num_starting_up', 'NumUnits', m_sets['in_sc_unco'], 'I')
+    vars['num_shutting_down'] = va.dkVar('num_shutting_down', '#Units', m_sets['in_sc_unco'], 'I')
+    vars['num_starting_up'] = va.dkVar('num_starting_up', '#Units', m_sets['in_sc_unco'], 'I')
 
     vars['reserve_enabled'] = va.dkVar('reserve_enabled', 'MW', m_sets['in_sc_un_re'])
 
@@ -191,13 +191,3 @@ def store_results(prob):
 
     if settings['WRITE_RESULTS_WITHOUT_LOOK_AHEAD']:
         write_TR_results(vars, paths)
-
-
-if __name__ == '__main__':
-    if len(sys.argv) <= 1:
-        print("Missing path to input folder as an argument")
-        exit()
-
-    name = sys.argv[1]
-    path_to_inputs = sys.argv[2]
-    model = run_opt_problem(name, path_to_inputs)

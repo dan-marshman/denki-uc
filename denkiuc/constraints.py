@@ -22,6 +22,7 @@ def cnt_supply_eq_demand(prob):
                  )
 
             mod += condition, label
+
     return mod
 
 
@@ -585,7 +586,6 @@ def add_constraints_to_model(prob):
 
 
 def add_all_constraints_to_dataframe(prob, cnts_df):
-    import denkiuc.misc_functions as mf
 
     cnts_df.loc['supply_eq_demand', 'Cnst'] = cnt_supply_eq_demand
     cnts_df.loc['meet_reserve_requirement', 'Cnst'] = cnt_meet_reserve_requirement
