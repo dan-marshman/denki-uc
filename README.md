@@ -24,6 +24,7 @@ For example, Denki-UC can be be used to study:
 * The impact of wind, solar and demand uncertainty on unit commitment decisions.
 * Evolution of electricity prices, and market performance in different power systems.
 * Impacts on ancillary services - e.g. reserves and inertia, from growing renewables.
+* While the model is based on a unit commitment function, it can be used to study generation expansion problems (include with unit commitment constraints, subject to tractability).
 
 For the unit commitment formulation and examples of the package's usage, see the following:
 1. [Marshman, D., Brear, M., Jeppesen, M. and Ring, B., 2020. *Performance of wholesale electricity markets with high wind penetration.* Energy Economics, 89, p.104803.](https://www.sciencedirect.com/science/article/pii/S0140988320301432)
