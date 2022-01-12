@@ -43,22 +43,22 @@ $ python main.py
 This will run a test set of input data, viewed in '/examples/test1'. Results files will be written as .csv files in the directory 'denki-outputs' by default.
 
 ## Getting started
-The module runs a unit commitment simulation by calling an instance of a ucModel from uc_model.py, which takes two arguments
-1. The name of your simulation (e.g. "MyModel")
+The module runs a unit commitment simulation by calling a run_opt_problem(name, path) from uc_model.py, which takes two required arguments, and an optional third.
+1. The name of your simulation (a string e.g. "MyModel")
 2. The path to the input data directory (e.g. 'path\to\inputs')
+3. (optional) The path to save the outputs (e.g., 'path\to\outputs')
 
-In a python script, execute:
+For example to run an example model (test1), in a python script, execute:
 ```
 import denkiuc.uc_model as uc
+import denkiuc.denki_paths
+import os
 
-yourModel = uc.ucModel(name='MyModel', path_to_inputs='<denki_path>\examples\test1')
+dk_paths = denkiuc.denki_paths.dk_paths
+path_to_test1 = os.path.join(<denki_path>, 'test1')
+uc.run_opt_problem(name='test1', prob_path=path_to_test1, outputs_path=<your_ouptputs_path>)
 ```
-replacing *<denki_path>* with the path where you cloned the repo.  This will load test1 in the examples folder.  In general, 'path_to_inputs' argument should contain all input data (e.g. electricity demand, generating unit data, etc), and a 'settings.csv', which controls how the model behaves.
-
-At this point, you will have built a model - but not yet solved it.  To do so, use the 'solve()' method, i.e.
-```
-yourModel.solve()
-```
+replacing *<denki_path>* with the path where you cloned the repo, and *<your_ouptputs_path>* to a desired results directory.
 This will solve the UC optimisation problem, and write outputs to 'outputs_folder\MyModel\results', with this path being specified in your settings.csv file.
 ### Overview of the input files
 A minimal set of input data is described in this section.Within the 'examples' folder are example input data collections.  

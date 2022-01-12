@@ -6,10 +6,10 @@ import os
 import pulp as pp
 
 
-def run_opt_problem(name, prob_path):
+def run_opt_problem(name, prob_path, outputs_path=False):
     prob = init_prob(name)
 
-    prob['paths'] = init_paths(prob_path)
+    prob['paths'] = init_paths(prob_path, outputs_path)
     prob['settings'] = ld.load_settings(prob['paths'])
     prob['paths'] = complete_paths(prob['paths'], prob['settings'], prob['name'])
 
@@ -35,20 +35,25 @@ def init_prob(name):
     return prob
 
 
-def init_paths(prob_path):
+def init_paths(prob_path, outputs_path):
     paths = denkiuc.denki_paths.dk_paths
     paths['inputs'] = prob_path
     paths['settings'] = os.path.join(paths['inputs'], 'settings.csv')
+    paths['outputs'] = outputs_path
     return paths
 
 
 def complete_paths(paths, settings, name):
-    paths['outputs'] = os.path.join(settings['OUTPUTS_PATH'], name)
+    if paths['outputs'] is False:
+        paths['outputs'] = os.path.join(settings['OUTPUTS_PATH'], name)
     paths['results'] = os.path.join(paths['outputs'], 'results')
     paths['final_state'] = os.path.join(paths['results'], 'final_state.db')
     paths['LA_results_db'] = os.path.join(paths['results'], 'LA_results.db')
     paths['TR_results_db'] = os.path.join(paths['results'], 'TR_results.db')
     paths['arma_out_dir'] = os.path.join(paths['inputs'], 'arma_traces')
+
+    print(paths['outputs'])
+    exit()
 
     return paths
 
