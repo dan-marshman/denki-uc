@@ -52,9 +52,6 @@ def complete_paths(paths, settings, name):
     paths['TR_results_db'] = os.path.join(paths['results'], 'TR_results.db')
     paths['arma_out_dir'] = os.path.join(paths['inputs'], 'arma_traces')
 
-    print(paths['outputs'])
-    exit()
-
     return paths
 
 
@@ -82,6 +79,8 @@ def add_variables(m_sets):
     vars = dict()
 
     vars['power_generated'] = va.dkVar('power_generated', 'MW', m_sets['in_sc_un'])
+
+    vars['num_built'] = va.dkVar('num_built', '#Units', m_sets['un'], 'I')
 
     vars['num_committed'] = va.dkVar('num_committed', '#Units', m_sets['in_sc_unco'], 'I')
     vars['inertia_provided'] = va.dkVar('inertia_provided', 'MW.s', m_sets['in_sc_unco'])

@@ -130,10 +130,22 @@ def load_interval_subsets(settings, sets):
 
 
 def make_multi_sets(sets):
+    """
+    Function which makes combinations of sets. Shorthand naming is used:
+        in = intervals
+        sc = scenarios
+        un = units
+        unco = units_commit
+        unst = units_storage
+        re = reserves
+    """
+
     m_sets = \
         {
             'in': [sets['intervals']],
+            'un': [sets['units']],
             'in_sc': [sets['intervals'], sets['scenarios']],
+            'in_un': [sets['intervals'], sets['units']],
             'in_sc_un': [sets['intervals'], sets['scenarios'], sets['units']],
             'in_sc_unco': [sets['intervals'], sets['scenarios'], sets['units_commit']],
             'in_sc_unst': [sets['intervals'], sets['scenarios'], sets['units_storage']],

@@ -2,6 +2,21 @@ import pulp as pp
 import denkiuc.misc_functions as mf
 
 
+def build_obj_capital_term(prob):
+    sets, data, vars, settings = mf.prob_unpacker(prob, ['sets', 'data', 'vars', 'settings'])
+
+    obj_capital_cost = \
+        pp.lpSum(
+                 [vars['num_built'].var[u] * data['units']['CapitalCost_$pMW'][u]
+                  * data['units']['Capacity_MW'][u]
+                  for u in sets['units'].indices]
+                )
+
+    obj_capital_cost /= (8760 * len(sets['intervals'].indices) / settings['INTERVALS_PER_HOUR'])
+
+    return obj_capital_cost
+
+
 def build_obj_vom_term(prob):
     sets, data, vars, settings = mf.prob_unpacker(prob, ['sets', 'data', 'vars', 'settings'])
 
@@ -120,6 +135,8 @@ def unserved_obj_fn_terms(prob):
 
 
 def obj_fn(prob):
+    obj_capital_cost = build_obj_capital_term(prob)
+
     obj_vom_cost = build_obj_vom_term(prob)
     obj_fuel_cost = build_obj_fuel_term(prob)
     obj_start_up_cost = build_obj_start_cost_term(prob)
@@ -130,7 +147,8 @@ def obj_fn(prob):
     obj_carbon_cost = build_obj_carbon_price_term(prob)
 
     obj_fn = \
-        (obj_vom_cost + obj_fuel_cost + obj_start_up_cost) \
+        obj_capital_cost \
+        + (obj_vom_cost + obj_fuel_cost + obj_start_up_cost) \
         + obj_unserved_penalties \
         + obj_carbon_cost \
         - obj_rec_value

@@ -11,10 +11,11 @@ storage_continuity_first_int,1
 max_stored_energy,1
 max_charge,1
 commitment_continuity,1
-max_units_committed,1
+max_unit_committed,1
 maximum_reserve_enablement,1
 meet_reserve_requirement,1
 limit_rocof,1
 define_is_committed,1
 ramp_rate_up,1
 ramp_rate_down,1
+num_built_fixed,1

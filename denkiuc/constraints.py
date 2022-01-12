@@ -127,7 +127,7 @@ def cnt_inflexible_commitment(prob):
     return mod
 
 
-def cnt_max_units_committed(prob):
+def cnt_max_unit_committed(prob):
     sets, data, vars, mod = mf.prob_unpacker(prob, ['sets', 'data', 'vars', 'mod'])
 
     for i in sets['intervals'].indices:
@@ -138,7 +138,7 @@ def cnt_max_units_committed(prob):
                 condition = \
                     (vars['num_committed'].var[(i, s, u)]
                      <=
-                     data['units']['NoUnits'][u])
+                     vars['num_built'].var[u])
 
                 mod += condition, label
 
@@ -199,7 +199,7 @@ def cnt_power_lt_capacity(prob):
                      + pp.lpSum(vars['reserve_enabled'].var[(i, s, u, r)]
                                 for r in sets['raise_reserves'].indices)
                      <=
-                     data['units']['Capacity_MW'][u] * data['units']['NoUnits'][u]
+                     data['units']['Capacity_MW'][u] * vars['num_built'].var[u]
                      )
 
                 mod += condition, label
@@ -252,7 +252,7 @@ def cnt_minimum_down_time(prob):
             for s in sets['scenarios'].indices:
                 label = 'minimum_down_time_i_%d_u_%s_s_%d' % (i, u, s)
                 condition = (
-                    data['units']['NoUnits'][u] - vars['num_committed'].var[(i, s, u)]
+                    vars['num_built'].var[u] - vars['num_committed'].var[(i, s, u)]
                     >=
                     pp.lpSum([vars['num_shutting_down'].var[(i2, s, u)]
                               for i2 in range(i_low, i_high)])
@@ -373,7 +373,7 @@ def cnt_maximum_reserve_enablement(prob):
                         condition = (
                             vars['reserve_enabled'].var[(i, s, u, r)]
                             <=
-                            data['units']['NoUnits'][u] * max_reserves_per_unit
+                            vars['num_built'].var[u] * max_reserves_per_unit
                             )
 
                         mod += condition, label
@@ -441,13 +441,15 @@ def cnt_define_is_committed(prob):
     for i in sets['intervals'].indices:
         for s in sets['scenarios'].indices:
             for u in sets['units_commit'].indices:
+                BIG_M = max(1000, data['units']['NoUnits'][u])
+
                 label = 'define_is_committed_%s_int_%d_s_%d' % (u, i, s)
 
                 condition = \
                     (
                      vars['num_committed'].var[(i, s, u)]
                      <=
-                     vars['is_committed'].var[(i, s, u)] * data['units']['NoUnits'][u]
+                     vars['is_committed'].var[(i, s, u)] * BIG_M
                     )
 
                 mod += condition, label
@@ -531,6 +533,18 @@ def cnt_ramp_rate_down(prob):
     return mod
 
 
+def cnt_num_built_fixed(prob):
+    sets, data, vars, mod = mf.prob_unpacker(prob, ['sets', 'data', 'vars', 'mod'])
+
+    for u in sets['units'].indices:
+        label = 'num_built_fixed_%s' % u
+        condition = vars['num_built'].var[u] == data['units']['NoUnits'][u]
+
+        mod += condition, label
+
+    return mod
+
+
 def create_cnts_df(path_to_inputs):
     import os
     import pandas as pd
@@ -547,13 +561,14 @@ def add_basic_constraints(prob):
     prob['mod'] = cnt_power_lt_capacity(prob)
     prob['mod'] = cnt_variable_resource_availability(prob)
     prob['mod'] = cnt_maximum_reserve_enablement(prob)
+    prob['mod'] = cnt_num_built_fixed(prob)
 
     return prob
 
 
 def add_uc_constraints(prob):
     prob['mod'] = cnt_commitment_continuity(prob)
-    prob['mod'] = cnt_max_units_committed(prob)
+    prob['mod'] = cnt_max_unit_committed(prob)
     prob['mod'] = cnt_power_lt_committed_capacity(prob)
     prob['mod'] = cnt_power_gt_min_stable_gen(prob)
     prob['mod'] = cnt_minimum_up_time(prob)
@@ -585,6 +600,10 @@ def add_constraints_to_model(prob):
     return prob
 
 
+def add_ge_constraints(prob):
+    return prob
+
+
 def add_all_constraints_to_dataframe(prob, cnts_df):
 
     cnts_df.loc['supply_eq_demand', 'Cnst'] = cnt_supply_eq_demand
@@ -592,7 +611,7 @@ def add_all_constraints_to_dataframe(prob, cnts_df):
     cnts_df.loc['power_lt_capacity', 'Cnst'] = cnt_power_lt_capacity
     cnts_df.loc['variable_resource_availability', 'Cnst'] = cnt_variable_resource_availability
     cnts_df.loc['commitment_continuity', 'Cnst'] = cnt_commitment_continuity
-    cnts_df.loc['max_units_committed', 'Cnst'] = cnt_max_units_committed
+    cnts_df.loc['max_unit_committed', 'Cnst'] = cnt_max_unit_committed
     cnts_df.loc['power_lt_committed_capacity', 'Cnst'] = cnt_power_lt_committed_capacity
     cnts_df.loc['power_gt_min_stable_gen', 'Cnst'] = cnt_power_gt_min_stable_gen
     cnts_df.loc['minimum_up_time', 'Cnst'] = cnt_minimum_up_time
@@ -606,9 +625,13 @@ def add_all_constraints_to_dataframe(prob, cnts_df):
     cnts_df.loc['maximum_reserve_enablement', 'Cnst'] = cnt_maximum_reserve_enablement
     cnts_df.loc['limit_rocof', 'Cnst'] = cnt_limit_rocof
     cnts_df.loc['define_is_committed', 'Cnst'] = cnt_define_is_committed
+    cnts_df.loc['num_built_fixed', 'Cnst'] = cnt_num_built_fixed
 
     cnts_to_add_df = cnts_df[cnts_df['Include'] == 1]
+    print('\nAdding the following constraints')
     for cnt in cnts_to_add_df.index:
+        print(' -' + cnt)
         prob['mod'] = cnts_df['Cnst'][cnt](prob)
 
+    print('\nAll constraints are added')
     return prob['mod']
